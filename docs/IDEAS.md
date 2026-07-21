@@ -5,14 +5,14 @@ top. (Rod asked me to always add ideas/improvements as I go.)
 
 ## Engine & AI
 
-- **Model move drawbacks in the AI (found live).** The reference AI currently
-  grabs the highest raw-BP move, so it happily picks Hyper Beam / Hydro Cannon /
-  Blast Burn (recharge) and Focus Punch (priority −3, fails if hit first). Two
-  fixes: (a) the *moveset picker* should build a *competitively sane* set
-  (spread of types, avoid two recharge moves, include coverage), and (b) the
-  *engine* should model recharge / charge-up / priority so those moves carry
-  their real cost. Until then, tag such moves in the dataset with a `drawback`
-  field so the AI discounts them.
+- **[MOSTLY DONE] Model move drawbacks in the AI (found live).** Fixed: the
+  moveset picker now excludes conditional/2-turn/self-KO moves (sane sets), the
+  engine models recharge locks, Focus-Punch-fails-if-hit, self-KO faints, and
+  turn order uses move priority. STILL TODO: 2-turn charge/semi-invulnerable
+  moves (Solar Beam, Fly, Dig…) are excluded rather than modeled — model them so
+  they can be used; and a smarter AI that *uses* boost/status moves (right now
+  power-0 moves score 0 so are never chosen — status only appears via damaging
+  moves' secondary effects).
 - **A proper damage-calc cross-check.** Add a fixture of ~30 famous Gen-III
   matchups with the exact damage ranges from a trusted calc (min–max rolls),
   and assert our engine's spread matches. This is the real "our mechanics are

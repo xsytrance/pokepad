@@ -4,6 +4,21 @@ A running build log (newest on top). Decisions, milestones, and what's next.
 
 ## 2026-07-21
 
+- **Engine depth pass — status, stages, effects, priority.** The reference
+  engine now models: **stat stages** (−6..+6, main + accuracy/evasion) with
+  crits ignoring unfavorable stages; **status** (burn/poison/toxic/paralysis/
+  sleep/freeze) with real combat effects, end-of-turn residuals, and type-based
+  immunities; **confusion**; and per-move **secondary effects** driven by the
+  dataset metadata (ailment%, stat changes, flinch, drain, healing, multi-hit,
+  recharge). Turn order now uses **move priority** then speed (Quick Attack
+  first, Focus Punch last), and drawback moves are handled: **recharge** locks a
+  turn, **Focus Punch** fails if hit first, **self-KO** (Explosion/Self-Destruct)
+  faints the user, and the auto-moveset picker excludes conditional/2-turn/
+  self-KO moves so autonomous sets are sane. Tests: `tests/test_mechanics.py`
+  **+22** (burn halves physical only, paralysis ¼ speed, +2 Atk ~2×, crit
+  ignores stages, immunities, toxic escalation, seeded status battles resolve).
+  Total **48/48**. Still deferred (in IDEAS): 2-turn charge/semi-invuln moves,
+  held items, weather, switching/team AI.
 - **Reference battle engine (Python) — landed.** `sim/engine.py`: full core
   Gen-III mechanics on the *real* dataset (all 386 species / 372 moves / real
   type chart) — Gen-III stat formula (with natures), damage formula,
