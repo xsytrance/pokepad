@@ -4,6 +4,21 @@ A running build log (newest on top). Decisions, milestones, and what's next.
 
 ## 2026-07-21
 
+- **Phase 3 — Gen-III save parser → SaveTruth (READ-ONLY).** `save/gen3.py`
+  parses RSE/FRLG saves: 14-section slots, active-slot selection, trainer +
+  party; each Pokémon decrypted (key = PID^OTID), substructures ordered by
+  PID%24, and nature/shininess/gender/ability/IVs/EVs derived. Dataset gained
+  `internal_to_national` (species: Treecko=277) and `move_index_to_name`
+  (Ember=52) since saves store internal indices. `save/bridge.py` turns a party
+  entry into an engine Pokémon with its **real** level/IVs/EVs/nature/moves.
+  - Verified without a real `.sav` via a synthetic builder (`save/synth.py`):
+    `tests/test_save.py` **24/24** (crypto, checksums, substructure ordering
+    across two PIDs, every PID-derived fact) and `tests/test_bridge.py` — a
+    parsed team (shiny "EMBER" Charizard, real spread) battles by real
+    mechanics. Format doc: `docs/SAVE_FORMAT.md`.
+  - Final gate = a real save (like the touch-decode ritual): `python3 -m
+    save.gen3 file.sav`. TODO: PC boxes, items/money (encrypted), save-integrity
+    flags (mark illegal spreads `undetermined`).
 - **Engine depth pass — status, stages, effects, priority.** The reference
   engine now models: **stat stages** (−6..+6, main + accuracy/evasion) with
   crits ignoring unfavorable stages; **status** (burn/poison/toxic/paralysis/

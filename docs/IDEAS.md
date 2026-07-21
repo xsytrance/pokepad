@@ -30,6 +30,13 @@ top. (Rod asked me to always add ideas/improvements as I go.)
 
 ## Save data → SaveTruth
 
+- **PC boxes = the whole collection, not just the party.** Sections 5–13 hold
+  ~420 boxed mon (30 bytes shorter each — no party stat block). Parsing them
+  unlocks "summon anyone you've ever caught" and a physical, personal Pokédex on
+  the block. Big payoff, moderate work (same crypto, box layout).
+- **A save-truth diff between two saves of the same game** ("you released me in
+  this file") needs stable identity — match on PID (unique per mon), not species.
+
 - **The "your actual mon" gut-punch.** When a battle uses a mon from the real
   save, surface its *provenance* on the block: OT, met location/level, the date
   you caught it, its friendship. A Lv63 Charizard you raised from a Charmander

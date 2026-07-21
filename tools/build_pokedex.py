@@ -153,6 +153,7 @@ def build_moves():
                      or g3_pp != m["pp"] or g3_type != m["type"]["name"])
         moves[m["name"]] = {
             "name": m["name"],
+            "id": m["id"],                        # internal move index (saves store this)
             "type": g3_type,
             "power": g3_power,
             "accuracy": g3_acc,
@@ -222,6 +223,11 @@ def build_species():
         stats = {x["stat"]["name"]: x["base_stat"] for x in p["stats"]}
         types = [t["type"]["name"] for t in sorted(p["types"], key=lambda z: z["slot"])]
         abils = [a["ability"]["name"] for a in p["abilities"] if not a["is_hidden"]]  # no hidden abilities in Gen III
+        # Gen-III INTERNAL species index (save files store this, not the dex #)
+        gi = None
+        for g in p.get("game_indices", []):
+            if g["version"]["name"] in ("ruby", "sapphire", "emerald", "firered", "leafgreen"):
+                gi = g["game_index"]; break
         species[s["name"]] = {
             "dex": dex,
             "name": s["name"],
@@ -241,6 +247,7 @@ def build_species():
             # rendering seeds (metadata, not expression):
             "shape": (s.get("shape") or {}).get("name"),
             "color": (s.get("color") or {}).get("name"),
+            "gen3_index": gi,             # internal index in Gen-III saves
             "learnset": gen3_learnset(p),
         }
         if dex % 50 == 0:
@@ -305,6 +312,10 @@ def main():
         },
         "types": types, "abilities": abilities, "moves": moves,
         "species": species, "evolutions": evolutions,
+        # Gen-III internal species index -> species name (for save parsing)
+        "internal_to_national": {str(v["gen3_index"]): name
+                                 for name, v in species.items() if v.get("gen3_index")},
+        "move_index_to_name": {str(v["id"]): name for name, v in moves.items()},
     }
     with open(OUT, "w") as f:
         json.dump(dataset, f, separators=(",", ":"), sort_keys=True)
