@@ -40,6 +40,38 @@ GEN3_TYPES = ["normal", "fire", "water", "electric", "grass", "ice", "fighting",
               "poison", "ground", "flying", "psychic", "bug", "rock", "ghost",
               "dragon", "dark", "steel"]
 
+# version_group -> generation (stable, finite; avoids extra fetches)
+VG_GEN = {
+    "red-blue": 1, "yellow": 1,
+    "gold-silver": 2, "crystal": 2,
+    "ruby-sapphire": 3, "emerald": 3, "firered-leafgreen": 3, "colosseum": 3, "xd": 3,
+    "diamond-pearl": 4, "platinum": 4, "heartgold-soulsilver": 4,
+    "black-white": 5, "black-2-white-2": 5,
+    "x-y": 6, "omega-ruby-alpha-sapphire": 6,
+    "sun-moon": 7, "ultra-sun-ultra-moon": 7, "lets-go-pikachu-lets-go-eevee": 7,
+    "sword-shield": 8, "brilliant-diamond-shining-pearl": 8, "legends-arceus": 8,
+    "scarlet-violet": 9,
+}
+
+
+def gen3_field(past_values, field, current):
+    """The Gen-III value of a move field. A past_values entry {version_group: V,
+    <field>: X} means X applied to all generations BEFORE V's generation — so the
+    Gen-III value is the value from the earliest post-Gen-III change (gen > 3);
+    otherwise the field never changed after Gen III and the current value stands.
+    (Validated: Flamethrower 95, Thunder 120, Jump Kick 70.)"""
+    best_gen, best_val = None, None
+    for pv in past_values:
+        if pv.get(field) is None:
+            continue
+        g = VG_GEN.get(pv["version_group"]["name"])
+        if g is None or g <= 3:
+            continue
+        if best_gen is None or g < best_gen:
+            best_gen, best_val = g, pv[field]
+    return best_val if best_val is not None else current
+
+
 os.makedirs(CACHE, exist_ok=True)
 os.makedirs(os.path.dirname(OUT), exist_ok=True)
 
@@ -109,14 +141,26 @@ def build_moves():
         meta = m.get("meta") or {}
         stat_changes = [{"stat": s["stat"]["name"], "change": s["change"]}
                         for s in m.get("stat_changes", [])]
-        changed = any(pv for pv in m.get("past_values", []))
+        past = m.get("past_values", [])
+        # correct power/accuracy/pp/type to their real Gen-III values
+        g3_power = gen3_field(past, "power", m["power"])
+        g3_acc = gen3_field(past, "accuracy", m["accuracy"])
+        g3_pp = gen3_field(past, "pp", m["pp"])
+        g3_type = gen3_field(past, "type", None) or m["type"]["name"]
+        if isinstance(g3_type, dict):
+            g3_type = g3_type["name"]
+        corrected = (g3_power != m["power"] or g3_acc != m["accuracy"]
+                     or g3_pp != m["pp"] or g3_type != m["type"]["name"])
         moves[m["name"]] = {
             "name": m["name"],
-            "type": m["type"]["name"],
-            "power": m["power"],
-            "accuracy": m["accuracy"],
-            "pp": m["pp"],
+            "type": g3_type,
+            "power": g3_power,
+            "accuracy": g3_acc,
+            "pp": g3_pp,
             "priority": m["priority"],
+            "gen3_corrected": corrected,          # true = a later-gen value was rolled back
+            "modern": {"type": m["type"]["name"], "power": m["power"],
+                       "accuracy": m["accuracy"], "pp": m["pp"]},
             "modern_class": m["damage_class"]["name"],   # reference only; engine splits by type
             "target": m["target"]["name"],
             "effect_chance": m["effect_chance"],
@@ -130,7 +174,6 @@ def build_moves():
             "max_hits": meta.get("max_hits"),
             "stat_changes": stat_changes,
             "short_effect": short_effect(m.get("effect_entries", [])),
-            "changed_since_gen3": changed,
         }
         if (i + 1) % 100 == 0:
             print(f"  moves: {i+1}/{len(listing)} scanned, {len(moves)} kept")
@@ -286,8 +329,14 @@ def verify(d):
     assert d["types"]["water"].get("fire") == 2.0
     print("type chart electric->ground:", d["types"]["electric"].get("ground"), "(expect 0.0)")
     assert d["types"]["electric"].get("ground") == 0.0
-    fb = d["moves"].get("flamethrower")
-    print("flamethrower:", {k: fb[k] for k in ("type", "power", "accuracy", "modern_class")})
+    # Gen-III accuracy corrections (rolled back from modern values)
+    fb, th, jk = d["moves"]["flamethrower"], d["moves"]["thunder"], d["moves"]["jump-kick"]
+    print(f"flamethrower: power={fb['power']} (Gen III 95; modern {fb['modern']['power']})")
+    print(f"thunder: power={th['power']} (Gen III 120; modern {th['modern']['power']})")
+    print(f"jump-kick: power={jk['power']} (Gen III 70; modern {jk['modern']['power']})")
+    assert fb["power"] == 95 and th["power"] == 120 and jk["power"] == 70
+    ncorr = sum(1 for m in d["moves"].values() if m.get("gen3_corrected"))
+    print(f"moves corrected to Gen-III values: {ncorr}/{len(d['moves'])}")
     print("all spot checks passed ✅")
 
 
