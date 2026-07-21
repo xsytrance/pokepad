@@ -1,0 +1,2 @@
+# scraper deps — none required (stdlib urllib); listed for clarity
+# (optional) requests  # not needed, we use urllib
