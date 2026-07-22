@@ -17,9 +17,19 @@ A running build log (newest on top). Decisions, milestones, and what's next.
     aware damage, and status math** (residual / toxic escalation / paralysis
     speed) — **285/285 cases match** (fixture: 108 chart + 128 stat + 15 eff +
     60 dmg + 13 stage + 24 status + 32 stageDmg). Run: `./tools/kotlin_crossgate.sh`.
-  - NEXT for the port: abilities + a full Kotlin Battle loop (teams/switching);
-    then wire the engine into a Scene on the blocks (reusing clawdpad-app snap/
-    relay/arena) + ART-M1 `CreatureRenderer`.
+  - **Full Kotlin engine now runs** (`kotlin/Battle.kt`): Dex (loads compact
+    `data/gen3_{species,moves,typechart}.tsv`), Mon (stats/stages/status),
+    abilities, and the complete battle loop — status gating, confusion, flinch,
+    recharge, self-KO, priority order, secondary effects, teams + best-matchup
+    switching, and the AI — a faithful port of the Python engine. `./tools/
+    kotlin_play.sh` runs a 3v3 demo + a self-test (**200/200 seeded battles
+    resolve**). Kotlin split into `Engine.kt` (shared math, cross-gated 285/285)
+    + `CrossGate.kt` + `Battle.kt`. The on-device brain is complete; RNG-battle
+    logic can't cross-gate (Python `random` ≠ Java `Random`) so it's self-tested.
+  - NEXT (needs hardware/you): wire this engine into a block **Scene** in the
+    Android app (reuse clawdpad-app snap/relay/arena) + ART-M1 `CreatureRenderer`
+    (sprites + summon/attack/faint animations). That's the "playable on the
+    blocks" step.
 - **Real GBA `.sav` validated the flat-container path.** Rod dropped a real
   Emerald save → `save/gen3.py` parsed it clean: **trainer NICK** (TID 17925,
   135h30m playtime) + party (SALAMENCE Lv50 Quiet/Intimidate, MAGCARGO,

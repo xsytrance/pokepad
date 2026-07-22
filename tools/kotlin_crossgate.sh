@@ -10,9 +10,9 @@ STDLIB="$LIB/kotlin-stdlib-2.3.21.jar"
 OUT=build/kotlin
 mkdir -p "$OUT"
 
-echo "· compiling kotlin/Pokepad.kt"
+echo "· compiling kotlin/Engine.kt kotlin/CrossGate.kt"
 "$JAVA_HOME/bin/java" -cp "$LIB/*" org.jetbrains.kotlin.cli.jvm.K2JVMCompiler \
-    kotlin/Pokepad.kt -classpath "$STDLIB" -d "$OUT/pokepad.jar" 2>&1 | grep -viE "warning:|experimental" || true
+    kotlin/Engine.kt kotlin/CrossGate.kt -classpath "$STDLIB" -d "$OUT/crossgate.jar" 2>&1 | grep -viE "warning:|experimental" || true
 
 echo "· running cross-gate against fixtures/crossgate.tsv"
-"$JAVA_HOME/bin/java" -cp "$OUT/pokepad.jar:$STDLIB" PokepadKt fixtures/crossgate.tsv
+"$JAVA_HOME/bin/java" -cp "$OUT/crossgate.jar:$STDLIB" CrossGateKt fixtures/crossgate.tsv
