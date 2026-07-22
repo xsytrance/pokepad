@@ -80,7 +80,7 @@ object Renderer {
         "ball", "blob" -> 7 to 6; "tentacles" -> 7 to 5; else -> 7 to 4
     }
 
-    fun render(shape: String, types: List<String>, features: List<String>): Frame {
+    fun render(shape: String, types: List<String>, features: List<String>, t: Int = -1): Frame {
         val fr = Frame()
         val body = TYPE_COLOR[types[0]] ?: 0xBEB4A0
         val accent = TYPE_COLOR[types.getOrElse(1) { types[0] }] ?: body
@@ -96,17 +96,27 @@ object Renderer {
             "armor" -> for (y in 3..12) for (x in 3..11) fr.set(x, y, if ((x + y) % 4 == 0) shade(body, 1.15) else body)
             else -> { ellipse(fr, 7.0, 4.5, 2.6, 2.6, body); for (y in 6..11) for (x in 5..9) fr.set(x, y, body); for (s in intArrayOf(-1, 1)) for (y in 6..8) fr.set(7 + s * 4, y, shade(accent, 0.95)); for (lx in intArrayOf(6, 8)) for (y in 12..13) fr.set(lx, y, dk) }
         }
-        for (f in features) feature(fr, f, hx, hy, body, accent)
-        eyes(fr, hx, hy, if (shape == "quadruped" || shape == "legs") 1 else 2)
+        val blink = t >= 0 && (t % 16) == 8
+        for (f in features) feature(fr, f, hx, hy, body, accent, t)
+        if (blink) { fr.set(hx - 1, hy, DARKEYE); fr.set(hx, hy, DARKEYE); fr.set(hx + 1, hy, DARKEYE) }
+        else eyes(fr, hx, hy, if (shape == "quadruped" || shape == "legs") 1 else 2)
         outline(fr)
+        if (t >= 0 && (t % 8) >= 4) shiftV(fr, -1)   // gentle breathing bob
         return fr
     }
 
-    private fun feature(fr: Frame, f: String, hx: Int, hy: Int, body: Int, accent: Int) {
+    private fun shiftV(fr: Frame, dy: Int) {   // move the whole creature by dy rows
+        val out = IntArray(W * W)
+        for (y in 0 until W) for (x in 0 until W) { val sy = y - dy; if (sy in 0 until W) out[y * W + x] = fr.px[sy * W + x] }
+        System.arraycopy(out, 0, fr.px, 0, out.size)
+    }
+
+    private fun feature(fr: Frame, f: String, hx: Int, hy: Int, body: Int, accent: Int, t: Int) {
+        val flick = t < 0 || (t % 4) < 2   // flame/spark "tall" phase
         when (f) {
             "head-leaf" -> { fr.set(hx, hy - 3, LEAF); fr.set(hx, hy - 4, LEAF); fr.set(hx - 1, hy - 3, shade(LEAF, 0.8)); fr.set(hx + 1, hy - 3, shade(LEAF, 0.8)) }
             "big-leaf" -> for (dx in -2..2) for (dy in -5..-3) if (Math.abs(dx) + Math.abs(dy + 4) <= 2) fr.set(hx + dx, hy + dy, if ((dx + dy) % 2 == 0) LEAF else shade(LEAF, 0.8))
-            "flame-tail" -> { fr.set(12, 11, FLAME[2]); fr.set(12, 10, FLAME[1]); fr.set(13, 10, FLAME[1]); fr.set(12, 9, FLAME[0]); fr.set(13, 9, FLAME[0]) }
+            "flame-tail" -> { fr.set(12, 11, FLAME[2]); fr.set(12, 10, FLAME[1]); fr.set(13, 10, FLAME[1]); fr.set(12, 9, FLAME[0]); fr.set(13, 9, FLAME[0]); if (flick) { fr.set(12, 8, FLAME[0]); fr.set(13, 8, FLAME[1]) } }
             "crest" -> { fr.set(hx, hy - 3, FLAME[1]); fr.set(hx - 1, hy - 2, FLAME[1]); fr.set(hx + 1, hy - 2, FLAME[0]) }
             "ears" -> { fr.set(hx - 2, hy - 2, body); fr.set(hx - 2, hy - 3, DARKEYE); fr.set(hx + 2, hy - 2, body); fr.set(hx + 2, hy - 3, DARKEYE) }
             "cheeks" -> { fr.set(hx - 3, hy + 1, 0xE85050); fr.set(hx + 3, hy + 1, 0xE85050) }
@@ -138,7 +148,7 @@ object Renderer {
     }
 }
 
-fun main() {
+fun main(args: Array<String>) {
     data class Sp(val name: String, val types: List<String>, val shape: String)
     val sp = HashMap<String, Sp>()
     File("data/gen3_species.tsv").forEachLine {
@@ -146,28 +156,41 @@ fun main() {
         val f = it.split("\t")
         sp[f[0]] = Sp(f[0], if (f[2].isEmpty()) listOf(f[1]) else listOf(f[1], f[2]), f.getOrElse(11) { "" })
     }
-    val show = listOf("bulbasaur", "charmander", "squirtle", "treecko", "torchic", "mudkip",
-        "pikachu", "gengar", "gyarados", "dragonite", "tyranitar", "snorlax",
-        "alakazam", "machamp", "lapras", "mewtwo", "rayquaza", "groudon",
-        "kyogre", "charizard", "blastoise", "venusaur", "loudred", "zigzagoon",
-        "scyther", "gardevoir", "salamence", "metagross").filter { it in sp }
 
-    val SCALE = 16; val cell = W * SCALE; val cols = 7; val rows = (show.size + cols - 1) / cols
-    val img = BufferedImage(cols * cell, rows * cell, BufferedImage.TYPE_INT_RGB)
-    val g = img.graphics
-    show.forEachIndexed { i, name ->
-        val s = sp[name]!!
-        val feats = FEATURES[name] ?: autoFeatures(s.types)
-        val fr = Renderer.render(s.shape, s.types, feats)
-        val ox = (i % cols) * cell; val oy = (i / cols) * cell
-        g.color = java.awt.Color(0x101014); g.fillRect(ox, oy, cell, cell)
-        for (y in 0 until W) for (x in 0 until W) {
-            val c = fr.get(x, y); if (c == 0) continue
-            g.color = java.awt.Color(c); g.fillRect(ox + x * SCALE, oy + y * SCALE, SCALE, SCALE)
+    fun draw(g: java.awt.Graphics, names: List<String>, cols: Int, scale: Int, t: Int) {
+        val cell = W * scale
+        names.forEachIndexed { i, name ->
+            val s = sp[name]!!
+            val fr = Renderer.render(s.shape, s.types, FEATURES[name] ?: autoFeatures(s.types), t)
+            val ox = (i % cols) * cell; val oy = (i / cols) * cell
+            g.color = java.awt.Color(0x101014); g.fillRect(ox, oy, cell, cell)
+            for (y in 0 until W) for (x in 0 until W) {
+                val c = fr.get(x, y); if (c == 0) continue
+                g.color = java.awt.Color(c); g.fillRect(ox + x * scale, oy + y * scale, scale, scale)
+            }
         }
     }
-    val out = File("build/creature_gallery.png"); out.parentFile.mkdirs()
-    ImageIO.write(img, "png", out)
-    println("wrote ${out.path}  (${show.size} creatures)")
-    println("order: " + show.joinToString(", "))
+
+    if (args.getOrNull(0) == "static") {          // full 28-creature static sheet
+        val show = listOf("bulbasaur", "charmander", "squirtle", "treecko", "torchic", "mudkip",
+            "pikachu", "gengar", "gyarados", "dragonite", "tyranitar", "snorlax", "alakazam", "machamp",
+            "lapras", "mewtwo", "rayquaza", "groudon", "kyogre", "charizard", "blastoise", "venusaur",
+            "loudred", "zigzagoon", "scyther", "gardevoir", "salamence", "metagross").filter { it in sp }
+        val cols = 7; val rows = (show.size + cols - 1) / cols; val scale = 16
+        val img = BufferedImage(cols * W * scale, rows * W * scale, BufferedImage.TYPE_INT_RGB)
+        draw(img.graphics, show, cols, scale, -1)
+        ImageIO.write(img, "png", File("build/creature_gallery.png").apply { parentFile.mkdirs() })
+        println("wrote build/creature_gallery.png"); return
+    }
+
+    // animated: idle-loop frames for the GIF
+    val show = listOf("charizard", "blastoise", "venusaur", "pikachu", "gengar", "gyarados", "snorlax", "mewtwo").filter { it in sp }
+    val cols = 4; val rows = 2; val scale = 20; val N = 16
+    File("build/anim").mkdirs()
+    for (t in 0 until N) {
+        val img = BufferedImage(cols * W * scale, rows * W * scale, BufferedImage.TYPE_INT_RGB)
+        draw(img.graphics, show, cols, scale, t)
+        ImageIO.write(img, "png", File("build/anim/frame_%02d.png".format(t)))
+    }
+    println("wrote $N anim frames for: ${show.joinToString(", ")}")
 }
