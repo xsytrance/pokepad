@@ -164,8 +164,17 @@ object Abilities {
     }
 }
 
+// ── battle events (typed sink for the renderer/Scene; default is no-op) ──────
+sealed class Ev {
+    data class SendIn(val side: String, val species: String, val name: String) : Ev()   // → summon
+    data class Used(val side: String, val species: String, val move: String, val dmg: Int, val eff: Double) : Ev() // → attack (+hurt if dmg>0)
+    data class Faint(val side: String, val species: String) : Ev()                       // → faint
+    data class Win(val side: String, val species: String) : Ev()
+}
+
 // ── the battle (teams + switching) ──────────────────────────────────────────
-class Battle(val dex: Dex, left: List<Mon>, right: List<Mon>, seed: Long = 0, val log: (String) -> Unit = ::println) {
+class Battle(val dex: Dex, left: List<Mon>, right: List<Mon>, seed: Long = 0,
+             val log: (String) -> Unit = ::println, val emit: (Ev) -> Unit = {}) {
     val ls = left; val rs = right
     var li = 0; var ri = 0
     val rng = Random(seed)
@@ -278,7 +287,7 @@ class Battle(val dex: Dex, left: List<Mon>, right: List<Mon>, seed: Long = 0, va
             val effAcc = mv.accuracy * Engine.accMult(a.stages["acc"]!!) / Engine.accMult(d.stages["eva"]!!)
             if (rng.nextDouble() * 100 > effAcc) { log("  ${a.name} used $nice — it missed!"); return }
         }
-        var dealt = 0
+        var dealt = 0; var lastEff = 1.0
         if (mv.power > 0) {
             val imm = Abilities.typeImmunity(d, mv.type)
             if (imm != null) {
@@ -297,7 +306,7 @@ class Battle(val dex: Dex, left: List<Mon>, right: List<Mon>, seed: Long = 0, va
                 val (dmg, e) = battleDamage(a, d, mv.type, mv.power, 85 + rng.nextInt(16), rng.nextInt(16) == 0)
                 d.hp = maxOf(0, d.hp - dmg); total += dmg; d.tookDamage = true; eff = e
             }
-            dealt = total
+            dealt = total; lastEff = eff
             val tag = when { eff > 1 -> " (super effective!)"; eff in 0.0..0.99 -> " (resisted)"; else -> "" }
             log("  ${a.name} used $nice → $total$tag  (${d.name} ${d.hp}/${d.maxHp})")
             val cs = Abilities.contactStatus(moveName, mv.phys, d, rng)
@@ -306,6 +315,7 @@ class Battle(val dex: Dex, left: List<Mon>, right: List<Mon>, seed: Long = 0, va
                 log("  ${a.name} was ${statusWord(cs)} by ${d.ability}!")
             }
         } else log("  ${a.name} used $nice.")
+        emit(Ev.Used(if (a === left) "L" else "R", a.species.name, moveName, dealt, lastEff))
         if (!d.fainted) applyEffects(mv, a, d, dealt)
         if (moveName in RECHARGE && mv.power > 0) a.mustRecharge = true
         if (moveName in SELF_KO && mv.power > 0) a.hp = 0
@@ -326,16 +336,19 @@ class Battle(val dex: Dex, left: List<Mon>, right: List<Mon>, seed: Long = 0, va
             val act = if (key == "L") left else right
             if (!act.fainted) continue
             log("  ${act.name} fainted!")
+            emit(Ev.Faint(key, act.species.name))
             if (sideAlive(team)) {
                 val foe = if (key == "L") right else left
                 val nxt = bestSwitch(team, foe)
                 if (key == "L") li = nxt else ri = nxt
                 log("  → sends out ${team[nxt].name}!")
+                emit(Ev.SendIn(key, team[nxt].species.name, team[nxt].name))
                 Abilities.onSwitchIn(team[nxt], foe, log)
             }
         }
         val la = sideAlive(ls); val ra = sideAlive(rs)
-        if (!(la && ra)) { over = true; winner = if (la) left else if (ra) right else null }
+        if (!(la && ra)) { over = true; winner = if (la) left else if (ra) right else null
+            winner?.let { emit(Ev.Win(if (it === left) "L" else "R", it.species.name)) } }
     }
 
     private fun endOfTurn(p: Mon) {
@@ -349,6 +362,7 @@ class Battle(val dex: Dex, left: List<Mon>, right: List<Mon>, seed: Long = 0, va
     fun run(maxTurns: Int = 1000): Mon? {
         val teams = ls.size == 1 && rs.size == 1
         log(if (teams) "${left.name} vs ${right.name}" else "${ls.size}v${rs.size} — ${left.name} & ${right.name} lead")
+        emit(Ev.SendIn("L", left.species.name, left.name)); emit(Ev.SendIn("R", right.species.name, right.name))
         Abilities.onSwitchIn(left, right, log); Abilities.onSwitchIn(right, left, log)
         var t = 0
         while (!over && t < maxTurns) {
