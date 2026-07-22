@@ -11,7 +11,7 @@ Writes fixtures/crossgate.tsv with four record kinds:
 """
 import os, sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from sim.engine import Dex, Pokemon, damage, is_physical, stage_mult  # noqa
+from sim.engine import Dex, Pokemon, damage, is_physical, stage_mult, acc_mult  # noqa
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 dex = Dex()
@@ -71,8 +71,45 @@ for a, d, mv in pairs:
             rows.append(f"DMG\t50\t{power}\t{A}\t{D}\t{','.join(atk.types)}\t{mt}\t"
                         f"{','.join(dfn.types)}\t{1 if phys else 0}\t{roll}\t{crit}\t{dmg}")
 
+# 5) stat/accuracy stage multipliers (compared as int(1000*mult) to dodge float formatting)
+for n in range(-6, 7):
+    rows.append(f"STAGE\t{n}\t{int(1000 * stage_mult(n))}\t{int(1000 * acc_mult(n))}")
+
+# 6) status math (residual, toxic escalation, paralysis speed)
+for hp in (100, 153, 235, 267):
+    rows.append(f"RES\t{hp}\t{max(1, hp // 8)}")
+    for c in (1, 2, 3, 4):
+        rows.append(f"TOX\t{hp}\t{c}\t{max(1, hp * c // 16)}")
+for spe in (50, 90, 120, 155):
+    rows.append(f"PARA\t{spe}\t{spe // 4}")
+
+# 7) stage/burn/crit-aware damage
+stage_cases = [("machamp", "blastoise", "earthquake", 2, 0, 0), ("machamp", "blastoise", "earthquake", -2, 0, 0),
+               ("machamp", "blastoise", "earthquake", 0, 2, 0), ("machamp", "blastoise", "earthquake", 0, -2, 0),
+               ("machamp", "blastoise", "body-slam", 0, 0, 1), ("charizard", "blastoise", "flamethrower", 4, 0, 0),
+               ("charizard", "venusaur", "flamethrower", 0, -1, 0), ("alakazam", "machamp", "psychic", 2, 2, 0)]
+for a, d, mv, ast, dst, burn in stage_cases:
+    if mv not in dex.moves:
+        continue
+    atk = Pokemon(dex, a, level=50, ability="pressure")
+    dfn = Pokemon(dex, d, level=50, ability="pressure")
+    phys = is_physical(dex.moves[mv]["type"])
+    atk.stages["atk" if phys else "spa"] = ast
+    dfn.stages["def" if phys else "spd"] = dst
+    if burn:
+        atk.status = "brn"
+    baseA = atk.stats["atk"] if phys else atk.stats["spa"]
+    baseD = dfn.stats["def"] if phys else dfn.stats["spd"]
+    mt = dex.moves[mv]["type"]; power = dex.moves[mv]["power"]
+    for roll in (85, 100):
+        for crit in (0, 1):
+            dmg, _, _, _ = damage(dex, atk, dfn, mv, roll=roll, crit=bool(crit))
+            rows.append(f"DMGX\t50\t{power}\t{baseA}\t{baseD}\t{ast}\t{dst}\t{burn}\t{1 if phys else 0}\t"
+                        f"{','.join(atk.types)}\t{mt}\t{','.join(dfn.types)}\t{roll}\t{crit}\t{dmg}")
+
 os.makedirs(os.path.join(ROOT, "fixtures"), exist_ok=True)
 out = os.path.join(ROOT, "fixtures", "crossgate.tsv")
 open(out, "w").write("\n".join(rows) + "\n")
-n = {k: sum(1 for r in rows if r.startswith(k)) for k in ("CHART", "STAT", "EFF", "DMG")}
+n = {k: sum(1 for r in rows if r.split("\t", 1)[0] == k)
+     for k in ("CHART", "STAT", "EFF", "DMG", "STAGE", "RES", "TOX", "PARA", "DMGX")}
 print(f"wrote {out}: {n}  ({len(rows)} rows)")

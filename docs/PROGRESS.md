@@ -10,11 +10,16 @@ A running build log (newest on top). Decisions, milestones, and what's next.
   export_fixture.py` has Python emit `fixtures/crossgate.tsv` (311 cases with
   expected values); `tools/kotlin_crossgate.sh` compiles the Kotlin (via the
   Kotlin compiler bundled in the local Gradle dist — no SDK/Android needed) and
-  validates it: **203/203 cases match the Python reference bit-for-bit** (the
-  "one rule-set, two engines, one gate"). This same fixture will guard the
-  engine when it moves into the Android app. NEXT for the port: stages/status/
-  abilities/teams in Kotlin (each gated by an expanded fixture), then wire it
-  into a Scene on the blocks (reusing clawdpad-app snap/relay/arena) + ART-M1.
+  validates it against the Python reference bit-for-bit (the "one rule-set, two
+  engines, one gate"). This same fixture will guard the engine when it moves into
+  the Android app.
+  - **Now covers: stat formula, type chart, damage, stat stages, stage/burn/crit-
+    aware damage, and status math** (residual / toxic escalation / paralysis
+    speed) — **285/285 cases match** (fixture: 108 chart + 128 stat + 15 eff +
+    60 dmg + 13 stage + 24 status + 32 stageDmg). Run: `./tools/kotlin_crossgate.sh`.
+  - NEXT for the port: abilities + a full Kotlin Battle loop (teams/switching);
+    then wire the engine into a Scene on the blocks (reusing clawdpad-app snap/
+    relay/arena) + ART-M1 `CreatureRenderer`.
 - **Real GBA `.sav` validated the flat-container path.** Rod dropped a real
   Emerald save → `save/gen3.py` parsed it clean: **trainer NICK** (TID 17925,
   135h30m playtime) + party (SALAMENCE Lv50 Quiet/Intimidate, MAGCARGO,

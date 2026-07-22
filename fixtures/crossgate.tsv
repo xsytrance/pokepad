@@ -309,3 +309,72 @@ DMG	50	85	130	80	normal	normal	ghost,poison	1	93	0	0
 DMG	50	85	130	80	normal	normal	ghost,poison	1	93	1	0
 DMG	50	85	130	80	normal	normal	ghost,poison	1	100	0	0
 DMG	50	85	130	80	normal	normal	ghost,poison	1	100	1	0
+STAGE	-6	250	333
+STAGE	-5	285	375
+STAGE	-4	333	428
+STAGE	-3	400	500
+STAGE	-2	500	600
+STAGE	-1	666	750
+STAGE	0	1000	1000
+STAGE	1	1500	1333
+STAGE	2	2000	1666
+STAGE	3	2500	2000
+STAGE	4	3000	2333
+STAGE	5	3500	2666
+STAGE	6	4000	3000
+RES	100	12
+TOX	100	1	6
+TOX	100	2	12
+TOX	100	3	18
+TOX	100	4	25
+RES	153	19
+TOX	153	1	9
+TOX	153	2	19
+TOX	153	3	28
+TOX	153	4	38
+RES	235	29
+TOX	235	1	14
+TOX	235	2	29
+TOX	235	3	44
+TOX	235	4	58
+RES	267	33
+TOX	267	1	16
+TOX	267	2	33
+TOX	267	3	50
+TOX	267	4	66
+PARA	50	12
+PARA	90	22
+PARA	120	30
+PARA	155	38
+DMGX	50	100	150	120	2	0	0	1	fighting	ground	water	85	0	95
+DMGX	50	100	150	120	2	0	0	1	fighting	ground	water	85	1	190
+DMGX	50	100	150	120	2	0	0	1	fighting	ground	water	100	0	112
+DMGX	50	100	150	120	2	0	0	1	fighting	ground	water	100	1	224
+DMGX	50	100	150	120	-2	0	0	1	fighting	ground	water	85	0	24
+DMGX	50	100	150	120	-2	0	0	1	fighting	ground	water	85	1	96
+DMGX	50	100	150	120	-2	0	0	1	fighting	ground	water	100	0	29
+DMGX	50	100	150	120	-2	0	0	1	fighting	ground	water	100	1	114
+DMGX	50	100	150	120	0	2	0	1	fighting	ground	water	85	0	24
+DMGX	50	100	150	120	0	2	0	1	fighting	ground	water	85	1	96
+DMGX	50	100	150	120	0	2	0	1	fighting	ground	water	100	0	29
+DMGX	50	100	150	120	0	2	0	1	fighting	ground	water	100	1	114
+DMGX	50	100	150	120	0	-2	0	1	fighting	ground	water	85	0	95
+DMGX	50	100	150	120	0	-2	0	1	fighting	ground	water	85	1	190
+DMGX	50	100	150	120	0	-2	0	1	fighting	ground	water	100	0	112
+DMGX	50	100	150	120	0	-2	0	1	fighting	ground	water	100	1	224
+DMGX	50	85	150	120	0	0	1	1	fighting	normal	water	85	0	21
+DMGX	50	85	150	120	0	0	1	1	fighting	normal	water	85	1	42
+DMGX	50	85	150	120	0	0	1	1	fighting	normal	water	100	0	25
+DMGX	50	85	150	120	0	0	1	1	fighting	normal	water	100	1	50
+DMGX	50	95	129	125	4	0	0	0	fire,flying	fire	water	85	0	83
+DMGX	50	95	129	125	4	0	0	0	fire,flying	fire	water	85	1	166
+DMGX	50	95	129	125	4	0	0	0	fire,flying	fire	water	100	0	98
+DMGX	50	95	129	125	4	0	0	0	fire,flying	fire	water	100	1	196
+DMGX	50	95	129	120	0	-1	0	0	fire,flying	fire	grass,poison	85	0	175
+DMGX	50	95	129	120	0	-1	0	0	fire,flying	fire	grass,poison	85	1	351
+DMGX	50	95	129	120	0	-1	0	0	fire,flying	fire	grass,poison	100	0	206
+DMGX	50	95	129	120	0	-1	0	0	fire,flying	fire	grass,poison	100	1	414
+DMGX	50	90	155	105	2	2	0	0	psychic	psychic	fighting	85	0	153
+DMGX	50	90	155	105	2	2	0	0	psychic	psychic	fighting	85	1	601
+DMGX	50	90	155	105	2	2	0	0	psychic	psychic	fighting	100	0	180
+DMGX	50	90	155	105	2	2	0	0	psychic	psychic	fighting	100	1	708

@@ -27,6 +27,32 @@ object Engine {
         return m
     }
 
+    fun stageMult(s: Int): Double = if (s >= 0) (2.0 + s) / 2 else 2.0 / (2 - s)
+    fun accMult(s: Int): Double = if (s >= 0) (3.0 + s) / 3 else 3.0 / (3 - s)
+
+    /** stage- and burn-aware damage; crit ignores the attacker's negative
+     *  offensive stage and the defender's positive defensive stage. */
+    fun damageStage(chart: Map<String, Map<String, Double>>, level: Int, power: Int, baseAtk: Int, baseDef: Int,
+                    atkStage: Int, defStage: Int, burn: Boolean, phys: Boolean,
+                    atkTypes: List<String>, moveType: String, defTypes: List<String>,
+                    roll: Int, crit: Boolean): Int {
+        val eff = typeEff(chart, moveType, defTypes)
+        if (eff == 0.0) return 0
+        var aS = atkStage; var dS = defStage
+        if (crit) { aS = maxOf(0, aS); dS = minOf(0, dS) }
+        var A = maxOf(1, (baseAtk * stageMult(aS)).toInt())
+        val D = maxOf(1, (baseDef * stageMult(dS)).toInt())
+        if (phys && burn) A /= 2
+        A = maxOf(1, A)
+        var dmg = (2 * level / 5 + 2) * power * A / D
+        dmg = dmg / 50 + 2
+        if (crit) dmg *= 2
+        if (moveType in atkTypes) dmg = dmg * 3 / 2
+        dmg = (dmg * eff).toInt()
+        dmg = dmg * roll / 100
+        return maxOf(1, dmg)
+    }
+
     /** Gen-III single-hit damage (core formula, no abilities/stages). */
     fun damage(chart: Map<String, Map<String, Double>>, level: Int, power: Int, atk: Int, def: Int,
                atkTypes: List<String>, moveType: String, defTypes: List<String>,
@@ -76,6 +102,19 @@ fun main(args: Array<String>) {
                 val got = Engine.damage(chart, f[1].toInt(), f[2].toInt(), f[3].toInt(), f[4].toInt(),
                         f[5].split(","), f[6], f[7].split(","), f[9].toInt(), f[10] == "1")
                 check(got == f[11].toInt(), "DMG ${f.drop(1)} → $got != ${f[11]}")
+            }
+            "STAGE" -> {
+                check((1000 * Engine.stageMult(f[1].toInt())).toInt() == f[2].toInt(), "stageMult ${f[1]}")
+                check((1000 * Engine.accMult(f[1].toInt())).toInt() == f[3].toInt(), "accMult ${f[1]}")
+            }
+            "RES" -> check(maxOf(1, f[1].toInt() / 8) == f[2].toInt(), "residual ${f[1]}")
+            "TOX" -> check(maxOf(1, f[1].toInt() * f[2].toInt() / 16) == f[3].toInt(), "toxic ${f[1]}/${f[2]}")
+            "PARA" -> check(f[1].toInt() / 4 == f[2].toInt(), "para speed ${f[1]}")
+            "DMGX" -> {  // level power baseAtk baseDef atkStage defStage burn phys atkTypes moveType defTypes roll crit exp
+                val got = Engine.damageStage(chart, f[1].toInt(), f[2].toInt(), f[3].toInt(), f[4].toInt(),
+                        f[5].toInt(), f[6].toInt(), f[7] == "1", f[8] == "1",
+                        f[9].split(","), f[10], f[11].split(","), f[12].toInt(), f[13] == "1")
+                check(got == f[14].toInt(), "DMGX ${f.drop(1)} → $got != ${f[14]}")
             }
         }
     }
