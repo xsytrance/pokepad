@@ -2,6 +2,20 @@
 
 A running build log (newest on top). Decisions, milestones, and what's next.
 
+## 2026-07-22
+
+- **Full-team 6v6 battles + switching.** `Battle` is now team-capable
+  (`left`/`right` = a Pokémon *or* a list; the active mon is a property). On a
+  faint the side **sends in its best matchup** (forced switch, scored by
+  `my_offense − their_offense`); a wiped side loses. Entry abilities
+  (Intimidate) fire on every send-in. 1v1 is just team-of-1 → fully backward
+  compatible (all prior tests unchanged). `save/bridge.team_from_savetruth`
+  turns a whole parsed party into a team, so **your six saved mon can fight**.
+  CLI now takes comma-separated teams: `python3 -m sim "charizard,alakazam"
+  "gyarados,snorlax"`. Tests `tests/test_team.py` **+7**; total **103/103**
+  across 6 suites. NEXT for battle-feel: *voluntary* strategic switching (only
+  forced switches today — see IDEAS).
+
 ## 2026-07-21
 
 - **Abilities (as hooks).** `sim/abilities.py` — a curated Gen-III set wired into

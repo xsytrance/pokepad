@@ -14,15 +14,20 @@ def main():
     ap.add_argument("--seed", type=int, default=0)
     a = ap.parse_args()
     dex = Dex()
-    for name in (a.left, a.right):
-        if name not in dex.species:
-            raise SystemExit(f"unknown species '{name}'. e.g. charizard, blastoise, gengar, rayquaza")
-    left = Pokemon(dex, a.left, level=a.level)
-    right = Pokemon(dex, a.right, level=a.level)
-    print(f"{left.name}: {'/'.join(left.types)}  stats={left.stats}")
-    print(f"   moves: {', '.join(m.replace('-', ' ') for m in left.moves)}")
-    print(f"{right.name}: {'/'.join(right.types)}  stats={right.stats}")
-    print(f"   moves: {', '.join(m.replace('-', ' ') for m in right.moves)}\n")
+
+    def build(spec):
+        names = [s.strip() for s in spec.split(",")]
+        for n in names:
+            if n not in dex.species:
+                raise SystemExit(f"unknown species '{n}'. e.g. charizard, gengar, rayquaza (comma-separate for a team)")
+        mons = [Pokemon(dex, n, level=a.level) for n in names]
+        return mons if len(mons) > 1 else mons[0]
+
+    left, right = build(a.left), build(a.right)
+    for side in (left, right):
+        for m in (side if isinstance(side, list) else [side]):
+            print(f"{m.name}: {'/'.join(m.types)}  {m.ability}  moves: {', '.join(x.replace('-', ' ') for x in m.moves)}")
+    print()
     Battle(dex, left, right, seed=a.seed).run()
 
 

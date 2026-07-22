@@ -24,9 +24,14 @@ top. (Rod asked me to always add ideas/improvements as I go.)
   Later: model Gen-III specifics players will notice — the old crit system
   (stages, Focus Energy *lowering* crits was a Gen-I bug, fixed by III),
   Hyper Beam not recharging on KO, Wrap/Bind, Destiny Bond, etc.
-- **Team preview / lead logic.** When save data gives a 6-mon team, the "AI"
-  should switch, not just spam the lead. Even simple heuristics (switch on a
-  bad matchup) make autonomous battles feel *smart* on the blocks.
+- **[PARTIAL] Team preview / lead logic.** DONE: 6v6 with forced switch on
+  faint, best-matchup send-in. TODO: **voluntary** strategic switching mid-battle
+  (pivot out of a bad matchup before fainting) — the thing that makes it feel
+  *smart*. Guard against switch-loops (cap voluntary switches / only switch when
+  the incoming mon is a clear improvement AND the active is in real danger).
+- **Switch animation on the blocks.** A faint→send-next is a natural "return to
+  ball → throw next ball" beat; on two blocks the incoming mon could *walk in
+  from the far edge* across the seam.
 
 ## Save data → SaveTruth
 

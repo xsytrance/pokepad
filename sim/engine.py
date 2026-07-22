@@ -226,10 +226,21 @@ def choose_move(dex: Dex, attacker: Pokemon, defender: Pokemon) -> str:
 
 
 class Battle:
-    def __init__(self, dex: Dex, left: Pokemon, right: Pokemon, seed: int = 0, log=print):
-        self.dex, self.left, self.right = dex, left, right
+    """1v1 or full-team (6v6). `left`/`right` may be a Pokémon or a list; the
+    active mon of each side is `self.left` / `self.right`. On a faint the side
+    sends in its best matchup (forced switch); a side with no live mon loses."""
+    def __init__(self, dex: Dex, left, right, seed: int = 0, log=print):
+        self.dex = dex
+        self.ls = list(left) if isinstance(left, (list, tuple)) else [left]
+        self.rs = list(right) if isinstance(right, (list, tuple)) else [right]
+        self.li = self.ri = 0
         self.rng = random.Random(seed)
         self.log, self.over, self.winner = log, False, None
+
+    @property
+    def left(self): return self.ls[self.li]
+    @property
+    def right(self): return self.rs[self.ri]
 
     # ── status gating before a mon acts ──────────────────────────────────
     def _can_move(self, p: Pokemon) -> bool:
@@ -318,10 +329,38 @@ class Battle:
         return {"brn": "burned", "psn": "poisoned", "tox": "badly poisoned",
                 "par": "paralyzed", "slp": "put to sleep", "frz": "frozen"}[c]
 
-    def _faint(self, p):
-        other = self.right if p is self.left else self.left
-        self.over, self.winner = True, other
-        self.log(f"  {p.name} fainted! {other.name} wins.")
+    # ── team management (forced switch on faint; best-matchup send-in) ────
+    def _side_alive(self, team): return any(not m.fainted for m in team)
+
+    def _matchup(self, m, foe) -> float:
+        def best_power(a, b):
+            return max((self.dex.type_eff(self.dex.moves[mv]["type"], b.types) * (self.dex.moves[mv]["power"] or 0)
+                        for mv in a.moves if mv in self.dex.moves), default=0.0)
+        return best_power(m, foe) - best_power(foe, m)          # my offense − theirs
+
+    def _best_switch(self, team, foe) -> int:
+        return max((i for i, m in enumerate(team) if not m.fainted),
+                   key=lambda i: self._matchup(team[i], foe))
+
+    def _handle_faints(self):
+        for key in ("L", "R"):
+            team = self.ls if key == "L" else self.rs
+            act = self.left if key == "L" else self.right
+            if not act.fainted:
+                continue
+            self.log(f"  {act.name} fainted!")
+            if self._side_alive(team):
+                foe = self.right if key == "L" else self.left
+                nxt = self._best_switch(team, foe)
+                if key == "L": self.li = nxt
+                else: self.ri = nxt
+                nm = team[nxt]
+                self.log(f"  → sends out {nm.name} (Lv{nm.level})!")
+                abilities.on_switch_in(nm, foe, self.log)
+        la, ra = self._side_alive(self.ls), self._side_alive(self.rs)
+        if not (la and ra):
+            self.over = True
+            self.winner = self.left if la else (self.right if ra else None)
 
     def _act(self, attacker: Pokemon, defender: Pokemon, move: str):
         if not self._can_move(attacker):
@@ -385,15 +424,7 @@ class Battle:
         if move in RECHARGE and power > 0:
             attacker.must_recharge = True
         if move in SELF_KO and power > 0:
-            attacker.hp = 0
-            self.log(f"  {attacker.name} fainted (it used {nice})!")
-        if defender.fainted and attacker.fainted:
-            self.over, self.winner = True, defender      # exploder loses the 1v1
-            self.log(f"  both go down — {defender.name} outlasts.")
-        elif defender.fainted:
-            self._faint(defender)
-        elif attacker.fainted:
-            self._faint(attacker)
+            attacker.hp = 0                              # user faints (resolved by _handle_faints)
 
     def _end_of_turn(self, p: Pokemon):
         if p.fainted or self.over:
@@ -408,13 +439,13 @@ class Battle:
             d = max(1, p.max_hp * p.status_counter // 16); p.status_counter += 1
             p.hp = max(0, p.hp - d)
             self.log(f"  {p.name} is hurt by toxic ({d}).")
-        if p.fainted:
-            self._faint(p)
 
     def _other(self, p): return self.right if p is self.left else self.left
 
-    def run(self, max_turns: int = 300):
-        self.log(f"{self.left.name} (Lv{self.left.level}) vs {self.right.name} (Lv{self.right.level})")
+    def run(self, max_turns: int = 1000):
+        n_l, n_r = len(self.ls), len(self.rs)
+        self.log(f"{self.left.name} vs {self.right.name}" if n_l == n_r == 1
+                 else f"{n_l}v{n_r} team battle — {self.left.name} & {self.right.name} lead")
         for p, foe in ((self.left, self.right), (self.right, self.left)):   # entry abilities (Intimidate)
             abilities.on_switch_in(p, foe, self.log)
         t = 0
@@ -423,18 +454,22 @@ class Battle:
             self.log(f"— turn {t} —")
             for p in (self.left, self.right):
                 p.took_damage = False
-            # both commit a move, THEN act in (priority, speed) order
-            picks = {p: choose_move(self.dex, p, self._other(p)) for p in (self.left, self.right) if not p.fainted}
+            picks = {self.left: choose_move(self.dex, self.left, self.right),
+                     self.right: choose_move(self.dex, self.right, self.left)}
             order = sorted(picks.keys(),
                            key=lambda p: (self.dex.moves[picks[p]]["priority"], p.eff_speed(), self.rng.random()),
                            reverse=True)
             for attacker in order:
-                if attacker.fainted or self.over:
+                if self.over or attacker.fainted:          # fainted = KO'd & already replaced this turn
                     continue
                 self._act(attacker, self._other(attacker), picks[attacker])
+                self._handle_faints()
                 if self.over:
                     break
-            for p in (self.left, self.right):   # end of turn: flinch clears, residuals
+            if self.over:
+                break
+            for p in (self.left, self.right):              # residuals, then resolve any faints
                 p.flinched = False
                 self._end_of_turn(p)
+            self._handle_faints()
         return self.winner
