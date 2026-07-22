@@ -66,6 +66,20 @@ def run():
     check("mon1 nature == PID%25", p["nature"] == NATURES[pika_pid % 25], (p["nature"], NATURES[pika_pid % 25]))
     check("mon1 gender derived", p["gender"] in ("male", "female"), p["gender"])
 
+    # guarded: if a real GBA .sav sits in the repo root, validate the flat path too
+    import glob
+    root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    hits = glob.glob(os.path.join(root, "*.sav"))
+    if hits:
+        rs = parse_save(open(hits[0], "rb").read())
+        check("real .sav: game detected", rs["source"]["game"] in ("RS", "Emerald", "FRLG"), rs["source"]["game"])
+        check("real .sav: trainer + party present",
+              bool(rs["trainer"]["name"]) and 1 <= len(rs["party"]) <= 6, (rs["trainer"]["name"], len(rs["party"])))
+        check("real .sav: every party mon fully decoded",
+              all(m["species"] and m["nature"] and m["ivs"] and m["ability"] for m in rs["party"]), None)
+    else:
+        check("real .sav present (skipped — none in repo)", True, "skipped")
+
 
 if __name__ == "__main__":
     run()

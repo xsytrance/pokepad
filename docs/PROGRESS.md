@@ -4,6 +4,15 @@ A running build log (newest on top). Decisions, milestones, and what's next.
 
 ## 2026-07-22
 
+- **Real GBA `.sav` validated the flat-container path.** Rod dropped a real
+  Emerald save → `save/gen3.py` parsed it clean: **trainer NICK** (TID 17925,
+  135h30m playtime) + party (SALAMENCE Lv50 Quiet/Intimidate, MAGCARGO,
+  Lv100 SMEARGLE), all IVs/EVs/nature/ability/moves. **Both parser paths are now
+  proven on real saves** (`.gci` Box collection + `.sav` main-game trainer+party).
+  Then the money shot: **NICK's real Emerald party vs Pierre's real Box team**
+  battled autonomously by real mechanics (Tyranitar "Altruisa" won). Guarded
+  real-`.sav` check added to `tests/test_save.py`. Personal saves gitignored
+  (`*.sav`, `*.gci`).
 - **Real save parsed — Pokémon Box RS `.gci`.** Rod dropped a real
   `01-GPXP-...box.gci` (GameCube, Pokémon Box: Ruby & Sapphire). `save/box_rs.py`
   reads it → **669 Pokémon / 382 species / 2 shinies**, all custom-nicknamed
