@@ -4,6 +4,17 @@ A running build log (newest on top). Decisions, milestones, and what's next.
 
 ## 2026-07-22
 
+- **Real save parsed — Pokémon Box RS `.gci`.** Rod dropped a real
+  `01-GPXP-...box.gci` (GameCube, Pokémon Box: Ruby & Sapphire). `save/box_rs.py`
+  reads it → **669 Pokémon / 382 species / 2 shinies**, all custom-nicknamed
+  (Golded ✨, Lilorange ✨, Firesaur, Vento, SirCanon…). **This validated the
+  whole Gen-III decoder against a genuine game dump** (crypto, PID%24 ordering,
+  IV/nature/shiny derivations — checksum-verified across hundreds of real mon).
+  Demo: **Pierre's real team battled autonomously by real mechanics.** Test
+  `tests/test_box_rs.py` **+9** (synthetic `.gci` fixture, CI-safe, + a guarded
+  real-save check). Personal saves are **gitignored** (never committed). Total
+  **112/112** across 7 suites. Unlocks: "pick your team from the whole box", a
+  living-Pokédex idle on the block (see IDEAS).
 - **Full-team 6v6 battles + switching.** `Battle` is now team-capable
   (`left`/`right` = a Pokémon *or* a list; the active mon is a property). On a
   faint the side **sends in its best matchup** (forced switch, scored by

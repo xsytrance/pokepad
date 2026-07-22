@@ -52,7 +52,22 @@ companion wraps around them is original reinterpretation. Impossible values
 (IVs > 31, illegal moves) should be surfaced as `undetermined`/`suspect`, not
 silently fixed (a future integrity pass — see IDEAS.md).
 
+## Pokémon Box: Ruby & Sapphire (`.gci`, GameCube)  — `save/box_rs.py`
+Game code **GPXP**. A GameCube memory-card save (64-byte GCI header + 8 KB
+blocks) that stores GBA Pokémon in the **same standard Gen-III encrypted 80-byte
+box format**. Rather than reverse the whole GameCube/Box container, we **scan**
+for 80-byte slots whose 48-byte data block checksums after decryption (a strong
+signature), filter to real species (internal index 1–411) and non-empty blocks,
+and dedupe (Box keeps backup copies). This is how a **real save validated the
+decoder end to end** (see below). Read-only. Run: `python3 -m save.box_rs f.gci`.
+
 ## Validation status
+**A real save has now validated the decoder** (a Pokémon Box RS `.gci`): 669
+Pokémon / 382 species / 2 shinies, all custom-nicknamed, decrypted and
+checksum-verified — the crypto, PID%24 ordering, IV/nature/shiny derivations are
+correct against a genuine game dump. (Personal saves are gitignored — never
+committed.) The remaining gate is a GBA `.sav` for the flat-container path
+(`gen3.py`); the per-mon decode is the same and now proven.
 Round-tripped via a synthetic save (`tests/test_save.py`, `tests/test_bridge.py`)
 — crypto, checksums, substructure ordering (two PIDs), and every PID-derived
 fact. The **final gate is a real save** (Rod's), like the touch-decode ritual:
