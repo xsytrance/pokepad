@@ -21,9 +21,11 @@ def test_stage_multipliers():
 
 
 def test_burn_halves_physical_only():
-    base = mon("machamp"); tgt = mon("blastoise")
-    normal, *_ = damage(dex, base, tgt, "earthquake", roll=100, crit=False)   # ground physical
-    burned = mon("machamp"); burned.status = "brn"
+    # ability="pressure" is inert re: damage (Machamp's real ability is Guts,
+    # which correctly ignores burn — tested in test_abilities, not here).
+    tgt = mon("blastoise")
+    normal, *_ = damage(dex, mon("machamp", ability="pressure"), tgt, "earthquake", roll=100, crit=False)
+    burned = mon("machamp", ability="pressure"); burned.status = "brn"
     burn_d, *_ = damage(dex, burned, tgt, "earthquake", roll=100, crit=False)
     check("burn reduces physical dmg", burn_d < normal, (burn_d, normal))
     check("burn ~halves physical", abs(burn_d * 2 - normal) <= 4, (burn_d, normal))

@@ -18,6 +18,7 @@ hazards, 2-turn charge/semi-invulnerable moves, switching/team AI. See IDEAS.md.
 from __future__ import annotations
 import json, os, random
 from dataclasses import dataclass, field
+from . import abilities
 
 DATA = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "gen3.json")
 
@@ -118,10 +119,15 @@ class Pokemon:
     nature: str = "hardy"
     moves: list[str] | None = None
     nickname: str | None = None
+    ability: str | None = None
 
     def __post_init__(self):
         s = self.dex.species[self.species]
         self.base = s["base"]; self.types = s["types"]
+        if self.ability is None:
+            abils = s.get("abilities") or []
+            self.ability = abils[0] if abils else None
+        self.flash_fire = False
         if self.moves is None:
             self.moves = self.dex.best_moveset(self.species)
         self.stats = {k: self._calc(k) for k in STATS}
@@ -192,6 +198,8 @@ def damage(dex: Dex, attacker: Pokemon, defender: Pokemon, move_name: str,
     if mv["type"] in attacker.types:
         dmg = dmg * 3 // 2
     dmg = int(dmg * eff)
+    dmg = int(dmg * abilities.offense_mult(attacker, mv["type"], phys))   # Huge Power, Guts, Blaze…
+    dmg = int(dmg * abilities.defense_mult(defender, mv["type"], phys))   # Thick Fat, Marvel Scale
     dmg = dmg * roll // 100
     return max(1, dmg), eff, crit, "hit"
 
@@ -265,7 +273,8 @@ class Battle:
                 if defender.confused == 0:
                     defender.confused = self.rng.randint(2, 5)
                     self.log(f"  {defender.name} became confused!")
-            elif defender.status is None and not self._status_immune(defender, code):
+            elif (defender.status is None and not self._status_immune(defender, code)
+                  and not abilities.status_immune(defender, code)):
                 defender.status = code
                 if code == "slp": defender.status_counter = self.rng.randint(1, 3)
                 if code == "tox": defender.status_counter = 1
@@ -280,6 +289,8 @@ class Battle:
             if sc_chance and self.rng.randint(1, 100) > sc_chance:
                 continue
             who = attacker if target_self else defender
+            if ch["change"] < 0 and not target_self and abilities.blocks_stat_drop(who):
+                continue
             got = who.boost(st, ch["change"])
             if got:
                 self.log(f"  {who.name}'s {st} {'rose' if ch['change']>0 else 'fell'}"
@@ -328,6 +339,20 @@ class Battle:
         power = mv["power"] or 0
         dealt = 0
         if power > 0:
+            mtype = mv["type"]; phys = is_physical(mtype)
+            imm = abilities.type_immunity(defender, mtype)
+            if imm:
+                if imm == "absorb":
+                    defender.heal(defender.max_hp // 4)
+                    self.log(f"  {defender.name} absorbed {nice} (heal) — {defender.ability.title()}!")
+                elif imm == "flashfire":
+                    defender.flash_fire = True
+                    self.log(f"  {defender.name}'s Flash Fire soaked up {nice}!")
+                else:
+                    self.log(f"  {nice} doesn't affect {defender.name} ({defender.ability.title()})!")
+                return
+            if abilities.wonder_guard_blocks(defender, self.dex.type_eff(mtype, defender.types)):
+                self.log(f"  {nice} can't break {defender.name}'s Wonder Guard!"); return
             hits = 1
             if mv.get("min_hits"):
                 hits = self.rng.randint(mv["min_hits"], mv["max_hits"] or mv["min_hits"])
@@ -340,6 +365,12 @@ class Battle:
                 defender.took_damage = True
                 if defender.fainted: break
             dealt = total
+            # on-contact ability may status the attacker (Static/Flame Body/Poison Point)
+            cs = abilities.contact_status(move, phys, defender, self.rng)
+            if cs and attacker.status is None and not abilities.status_immune(attacker, cs):
+                attacker.status = cs
+                if cs == "slp": attacker.status_counter = self.rng.randint(1, 3)
+                self.log(f"  {attacker.name} was {self._status_word(cs)} by {defender.ability.title()}!")
             tag = {2.0: " (super effective!)", 4.0: " (super effective!)",
                    0.5: " (resisted)", 0.25: " (resisted)"}.get(eff, "")
             crit_tag = " CRIT!" if crit else ""
@@ -384,6 +415,8 @@ class Battle:
 
     def run(self, max_turns: int = 300):
         self.log(f"{self.left.name} (Lv{self.left.level}) vs {self.right.name} (Lv{self.right.level})")
+        for p, foe in ((self.left, self.right), (self.right, self.left)):   # entry abilities (Intimidate)
+            abilities.on_switch_in(p, foe, self.log)
         t = 0
         while not self.over and t < max_turns:
             t += 1

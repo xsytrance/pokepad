@@ -4,6 +4,17 @@ A running build log (newest on top). Decisions, milestones, and what's next.
 
 ## 2026-07-21
 
+- **Abilities (as hooks).** `sim/abilities.py` — a curated Gen-III set wired into
+  the engine: type immunities (**Levitate** nullifies Ground, **Water/Volt
+  Absorb** heal, **Flash Fire** immunity + fire boost, **Wonder Guard** only
+  super-effective lands), damage mods (**Thick Fat**, **Huge Power**, **Guts**,
+  **Blaze/Torrent/Overgrow/Swarm**, **Marvel Scale**), **Intimidate** on entry,
+  status/stat-drop immunities (Limber/Immunity/Insomnia/Water Veil/Own Tempo/
+  Clear Body…), and on-contact statusing (Static/Flame Body/Poison Point). The
+  engine is now correct enough that Guts properly *ignores* burn (caught a naive
+  test). Tests `tests/test_abilities.py` **+16**; total **96/96** across 5 suites.
+  Deferred: weather-dependent abilities (Chlorophyll/Swift Swim) + the long tail
+  (data-driven expansion — dataset already has every ability + effect text).
 - **Phase 3 — Gen-III save parser → SaveTruth (READ-ONLY).** `save/gen3.py`
   parses RSE/FRLG saves: 14-section slots, active-slot selection, trainer +
   party; each Pokémon decrypted (key = PID^OTID), substructures ordered by
