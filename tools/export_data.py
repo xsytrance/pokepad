@@ -11,7 +11,8 @@ for name, s in d["species"].items():
     sp_rows.append("\t".join([name, t[0], t[1] if len(t) > 1 else "",
                               str(b["hp"]), str(b["atk"]), str(b["def"]),
                               str(b["spa"]), str(b["spd"]), str(b["spe"]),
-                              ab[0] if ab else "", ab[1] if len(ab) > 1 else ""]))
+                              ab[0] if ab else "", ab[1] if len(ab) > 1 else "",
+                              s.get("shape") or "", s.get("color") or ""]))
 open(os.path.join(ROOT, "data", "gen3_species.tsv"), "w").write("\n".join(sp_rows) + "\n")
 
 mv_rows = []

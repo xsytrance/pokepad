@@ -26,10 +26,18 @@ A running build log (newest on top). Decisions, milestones, and what's next.
     resolve**). Kotlin split into `Engine.kt` (shared math, cross-gated 285/285)
     + `CrossGate.kt` + `Battle.kt`. The on-device brain is complete; RNG-battle
     logic can't cross-gate (Python `random` ≠ Java `Random`) so it's self-tested.
-  - NEXT (needs hardware/you): wire this engine into a block **Scene** in the
-    Android app (reuse clawdpad-app snap/relay/arena) + ART-M1 `CreatureRenderer`
-    (sprites + summon/attack/faint animations). That's the "playable on the
-    blocks" step.
+- **ART-M1 started — CreatureRenderer (first pass).** `kotlin/Renderer.kt`:
+  turns a species' PokéAPI `shape` + types into an ORIGINAL 15x15 pixel creature
+  (archetype from shape: blob/quadruped/biped/serpent/fish/winged/tentacled/
+  armor; palette from type) — a block-ready `Frame` + a PNG gallery
+  (`tools/…` compile via the bundled Kotlin compiler → `build/creature_gallery.png`,
+  sent to Rod for review). Reads by silhouette + type-color; covenant-clean (no
+  ripped sprites). **Next: signature features per species** (wings/ears/tails/
+  flame) so same-archetype mon differ, then summon/attack/faint **animations** —
+  best done with Rod's eyes on the gallery.
+  - NEXT (needs hardware/you): wire the Kotlin engine + renderer into a block
+    **Scene** in the Android app (reuse clawdpad-app snap/relay/arena). That's
+    the "playable on the blocks" step.
 - **Real GBA `.sav` validated the flat-container path.** Rod dropped a real
   Emerald save → `save/gen3.py` parsed it clean: **trainer NICK** (TID 17925,
   135h30m playtime) + party (SALAMENCE Lv50 Quiet/Intimidate, MAGCARGO,
