@@ -4,6 +4,17 @@ A running build log (newest on top). Decisions, milestones, and what's next.
 
 ## 2026-07-22
 
+- **Kotlin on-device engine — bit-identical to the Python spec.** First step of
+  the port that will run on the blocks. `kotlin/Pokepad.kt` implements the
+  Gen-III core (stat formula, type chart, damage) in Kotlin; `tools/
+  export_fixture.py` has Python emit `fixtures/crossgate.tsv` (311 cases with
+  expected values); `tools/kotlin_crossgate.sh` compiles the Kotlin (via the
+  Kotlin compiler bundled in the local Gradle dist — no SDK/Android needed) and
+  validates it: **203/203 cases match the Python reference bit-for-bit** (the
+  "one rule-set, two engines, one gate"). This same fixture will guard the
+  engine when it moves into the Android app. NEXT for the port: stages/status/
+  abilities/teams in Kotlin (each gated by an expanded fixture), then wire it
+  into a Scene on the blocks (reusing clawdpad-app snap/relay/arena) + ART-M1.
 - **Real GBA `.sav` validated the flat-container path.** Rod dropped a real
   Emerald save → `save/gen3.py` parsed it clean: **trainer NICK** (TID 17925,
   135h30m playtime) + party (SALAMENCE Lv50 Quiet/Intimidate, MAGCARGO,

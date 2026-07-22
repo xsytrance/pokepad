@@ -1,0 +1,311 @@
+CHART	bug	dark	2.0
+CHART	bug	fighting	0.5
+CHART	bug	fire	0.5
+CHART	bug	flying	0.5
+CHART	bug	ghost	0.5
+CHART	bug	grass	2.0
+CHART	bug	poison	0.5
+CHART	bug	psychic	2.0
+CHART	bug	steel	0.5
+CHART	dark	dark	0.5
+CHART	dark	fighting	0.5
+CHART	dark	ghost	2.0
+CHART	dark	psychic	2.0
+CHART	dragon	dragon	2.0
+CHART	dragon	steel	0.5
+CHART	electric	dragon	0.5
+CHART	electric	electric	0.5
+CHART	electric	flying	2.0
+CHART	electric	grass	0.5
+CHART	electric	ground	0.0
+CHART	electric	water	2.0
+CHART	fighting	bug	0.5
+CHART	fighting	dark	2.0
+CHART	fighting	flying	0.5
+CHART	fighting	ghost	0.0
+CHART	fighting	ice	2.0
+CHART	fighting	normal	2.0
+CHART	fighting	poison	0.5
+CHART	fighting	psychic	0.5
+CHART	fighting	rock	2.0
+CHART	fighting	steel	2.0
+CHART	fire	bug	2.0
+CHART	fire	dragon	0.5
+CHART	fire	fire	0.5
+CHART	fire	grass	2.0
+CHART	fire	ice	2.0
+CHART	fire	rock	0.5
+CHART	fire	steel	2.0
+CHART	fire	water	0.5
+CHART	flying	bug	2.0
+CHART	flying	electric	0.5
+CHART	flying	fighting	2.0
+CHART	flying	grass	2.0
+CHART	flying	rock	0.5
+CHART	flying	steel	0.5
+CHART	ghost	dark	0.5
+CHART	ghost	ghost	2.0
+CHART	ghost	normal	0.0
+CHART	ghost	psychic	2.0
+CHART	grass	bug	0.5
+CHART	grass	dragon	0.5
+CHART	grass	fire	0.5
+CHART	grass	flying	0.5
+CHART	grass	grass	0.5
+CHART	grass	ground	2.0
+CHART	grass	poison	0.5
+CHART	grass	rock	2.0
+CHART	grass	steel	0.5
+CHART	grass	water	2.0
+CHART	ground	bug	0.5
+CHART	ground	electric	2.0
+CHART	ground	fire	2.0
+CHART	ground	flying	0.0
+CHART	ground	grass	0.5
+CHART	ground	poison	2.0
+CHART	ground	rock	2.0
+CHART	ground	steel	2.0
+CHART	ice	dragon	2.0
+CHART	ice	fire	0.5
+CHART	ice	flying	2.0
+CHART	ice	grass	2.0
+CHART	ice	ground	2.0
+CHART	ice	ice	0.5
+CHART	ice	steel	0.5
+CHART	ice	water	0.5
+CHART	normal	ghost	0.0
+CHART	normal	rock	0.5
+CHART	normal	steel	0.5
+CHART	poison	ghost	0.5
+CHART	poison	grass	2.0
+CHART	poison	ground	0.5
+CHART	poison	poison	0.5
+CHART	poison	rock	0.5
+CHART	poison	steel	0.0
+CHART	psychic	dark	0.0
+CHART	psychic	fighting	2.0
+CHART	psychic	poison	2.0
+CHART	psychic	psychic	0.5
+CHART	psychic	steel	0.5
+CHART	rock	bug	2.0
+CHART	rock	fighting	0.5
+CHART	rock	fire	2.0
+CHART	rock	flying	2.0
+CHART	rock	ground	0.5
+CHART	rock	ice	2.0
+CHART	rock	steel	0.5
+CHART	steel	electric	0.5
+CHART	steel	fire	0.5
+CHART	steel	ice	2.0
+CHART	steel	rock	2.0
+CHART	steel	steel	0.5
+CHART	steel	water	0.5
+CHART	water	dragon	0.5
+CHART	water	fire	2.0
+CHART	water	grass	0.5
+CHART	water	ground	2.0
+CHART	water	rock	2.0
+CHART	water	water	0.5
+STAT	35	0	0	50	0	1.0	40
+STAT	35	0	0	50	0	1.1	44
+STAT	35	0	0	50	0	0.9	36
+STAT	35	0	0	50	1	1.0	95
+STAT	35	0	0	100	0	1.0	75
+STAT	35	0	0	100	0	1.1	82
+STAT	35	0	0	100	0	0.9	67
+STAT	35	0	0	100	1	1.0	180
+STAT	35	0	252	50	0	1.0	71
+STAT	35	0	252	50	0	1.1	78
+STAT	35	0	252	50	0	0.9	63
+STAT	35	0	252	50	1	1.0	126
+STAT	35	0	252	100	0	1.0	138
+STAT	35	0	252	100	0	1.1	151
+STAT	35	0	252	100	0	0.9	124
+STAT	35	0	252	100	1	1.0	243
+STAT	35	31	0	50	0	1.0	55
+STAT	35	31	0	50	0	1.1	60
+STAT	35	31	0	50	0	0.9	49
+STAT	35	31	0	50	1	1.0	110
+STAT	35	31	0	100	0	1.0	106
+STAT	35	31	0	100	0	1.1	116
+STAT	35	31	0	100	0	0.9	95
+STAT	35	31	0	100	1	1.0	211
+STAT	35	31	252	50	0	1.0	87
+STAT	35	31	252	50	0	1.1	95
+STAT	35	31	252	50	0	0.9	78
+STAT	35	31	252	50	1	1.0	142
+STAT	35	31	252	100	0	1.0	169
+STAT	35	31	252	100	0	1.1	185
+STAT	35	31	252	100	0	0.9	152
+STAT	35	31	252	100	1	1.0	274
+STAT	78	0	0	50	0	1.0	83
+STAT	78	0	0	50	0	1.1	91
+STAT	78	0	0	50	0	0.9	74
+STAT	78	0	0	50	1	1.0	138
+STAT	78	0	0	100	0	1.0	161
+STAT	78	0	0	100	0	1.1	177
+STAT	78	0	0	100	0	0.9	144
+STAT	78	0	0	100	1	1.0	266
+STAT	78	0	252	50	0	1.0	114
+STAT	78	0	252	50	0	1.1	125
+STAT	78	0	252	50	0	0.9	102
+STAT	78	0	252	50	1	1.0	169
+STAT	78	0	252	100	0	1.0	224
+STAT	78	0	252	100	0	1.1	246
+STAT	78	0	252	100	0	0.9	201
+STAT	78	0	252	100	1	1.0	329
+STAT	78	31	0	50	0	1.0	98
+STAT	78	31	0	50	0	1.1	107
+STAT	78	31	0	50	0	0.9	88
+STAT	78	31	0	50	1	1.0	153
+STAT	78	31	0	100	0	1.0	192
+STAT	78	31	0	100	0	1.1	211
+STAT	78	31	0	100	0	0.9	172
+STAT	78	31	0	100	1	1.0	297
+STAT	78	31	252	50	0	1.0	130
+STAT	78	31	252	50	0	1.1	143
+STAT	78	31	252	50	0	0.9	117
+STAT	78	31	252	50	1	1.0	185
+STAT	78	31	252	100	0	1.0	255
+STAT	78	31	252	100	0	1.1	280
+STAT	78	31	252	100	0	0.9	229
+STAT	78	31	252	100	1	1.0	360
+STAT	100	0	0	50	0	1.0	105
+STAT	100	0	0	50	0	1.1	115
+STAT	100	0	0	50	0	0.9	94
+STAT	100	0	0	50	1	1.0	160
+STAT	100	0	0	100	0	1.0	205
+STAT	100	0	0	100	0	1.1	225
+STAT	100	0	0	100	0	0.9	184
+STAT	100	0	0	100	1	1.0	310
+STAT	100	0	252	50	0	1.0	136
+STAT	100	0	252	50	0	1.1	149
+STAT	100	0	252	50	0	0.9	122
+STAT	100	0	252	50	1	1.0	191
+STAT	100	0	252	100	0	1.0	268
+STAT	100	0	252	100	0	1.1	294
+STAT	100	0	252	100	0	0.9	241
+STAT	100	0	252	100	1	1.0	373
+STAT	100	31	0	50	0	1.0	120
+STAT	100	31	0	50	0	1.1	132
+STAT	100	31	0	50	0	0.9	108
+STAT	100	31	0	50	1	1.0	175
+STAT	100	31	0	100	0	1.0	236
+STAT	100	31	0	100	0	1.1	259
+STAT	100	31	0	100	0	0.9	212
+STAT	100	31	0	100	1	1.0	341
+STAT	100	31	252	50	0	1.0	152
+STAT	100	31	252	50	0	1.1	167
+STAT	100	31	252	50	0	0.9	136
+STAT	100	31	252	50	1	1.0	207
+STAT	100	31	252	100	0	1.0	299
+STAT	100	31	252	100	0	1.1	328
+STAT	100	31	252	100	0	0.9	269
+STAT	100	31	252	100	1	1.0	404
+STAT	135	0	0	50	0	1.0	140
+STAT	135	0	0	50	0	1.1	154
+STAT	135	0	0	50	0	0.9	126
+STAT	135	0	0	50	1	1.0	195
+STAT	135	0	0	100	0	1.0	275
+STAT	135	0	0	100	0	1.1	302
+STAT	135	0	0	100	0	0.9	247
+STAT	135	0	0	100	1	1.0	380
+STAT	135	0	252	50	0	1.0	171
+STAT	135	0	252	50	0	1.1	188
+STAT	135	0	252	50	0	0.9	153
+STAT	135	0	252	50	1	1.0	226
+STAT	135	0	252	100	0	1.0	338
+STAT	135	0	252	100	0	1.1	371
+STAT	135	0	252	100	0	0.9	304
+STAT	135	0	252	100	1	1.0	443
+STAT	135	31	0	50	0	1.0	155
+STAT	135	31	0	50	0	1.1	170
+STAT	135	31	0	50	0	0.9	139
+STAT	135	31	0	50	1	1.0	210
+STAT	135	31	0	100	0	1.0	306
+STAT	135	31	0	100	0	1.1	336
+STAT	135	31	0	100	0	0.9	275
+STAT	135	31	0	100	1	1.0	411
+STAT	135	31	252	50	0	1.0	187
+STAT	135	31	252	50	0	1.1	205
+STAT	135	31	252	50	0	0.9	168
+STAT	135	31	252	50	1	1.0	242
+STAT	135	31	252	100	0	1.0	369
+STAT	135	31	252	100	0	1.1	405
+STAT	135	31	252	100	0	0.9	332
+STAT	135	31	252	100	1	1.0	474
+EFF	water	fire	2.0
+EFF	fire	water	0.5
+EFF	electric	ground	0.0
+EFF	normal	ghost	0.0
+EFF	rock	fire,flying	4.0
+EFF	ice	grass	2.0
+EFF	ground	steel	2.0
+EFF	ghost	normal	0.0
+EFF	grass	water,ground	4.0
+EFF	dragon	dragon	2.0
+EFF	psychic	dark	0.0
+EFF	fighting	ghost	0.0
+EFF	bug	psychic	2.0
+EFF	dark	steel	1.0
+EFF	ice	dragon,flying	4.0
+DMG	50	95	129	125	fire,flying	fire	water	0	85	0	28
+DMG	50	95	129	125	fire,flying	fire	water	0	85	1	56
+DMG	50	95	129	125	fire,flying	fire	water	0	93	0	30
+DMG	50	95	129	125	fire,flying	fire	water	0	93	1	62
+DMG	50	95	129	125	fire,flying	fire	water	0	100	0	33
+DMG	50	95	129	125	fire,flying	fire	water	0	100	1	67
+DMG	50	95	105	105	water	water	fire,flying	0	85	0	108
+DMG	50	95	105	105	water	water	fire,flying	0	85	1	219
+DMG	50	95	105	105	water	water	fire,flying	0	93	0	119
+DMG	50	95	105	105	water	water	fire,flying	0	93	1	239
+DMG	50	95	105	105	water	water	fire,flying	0	100	0	128
+DMG	50	95	105	105	water	water	fire,flying	0	100	1	258
+DMG	50	55	120	125	grass,poison	grass	water	0	85	0	62
+DMG	50	55	120	125	grass,poison	grass	water	0	85	1	127
+DMG	50	55	120	125	grass,poison	grass	water	0	93	0	68
+DMG	50	55	120	125	grass,poison	grass	water	0	93	1	139
+DMG	50	55	120	125	grass,poison	grass	water	0	100	0	74
+DMG	50	55	120	125	grass,poison	grass	water	0	100	1	150
+DMG	50	55	120	105	grass,poison	grass	fire,flying	0	85	0	8
+DMG	50	55	120	105	grass,poison	grass	fire,flying	0	85	1	17
+DMG	50	55	120	105	grass,poison	grass	fire,flying	0	93	0	9
+DMG	50	55	120	105	grass,poison	grass	fire,flying	0	93	1	19
+DMG	50	55	120	105	grass,poison	grass	fire,flying	0	100	0	10
+DMG	50	55	120	105	grass,poison	grass	fire,flying	0	100	1	21
+DMG	50	100	150	120	fighting	ground	water	1	85	0	48
+DMG	50	100	150	120	fighting	ground	water	1	85	1	96
+DMG	50	100	150	120	fighting	ground	water	1	93	0	53
+DMG	50	100	150	120	fighting	ground	water	1	93	1	106
+DMG	50	100	150	120	fighting	ground	water	1	100	0	57
+DMG	50	100	150	120	fighting	ground	water	1	100	1	114
+DMG	50	90	155	105	psychic	psychic	fighting	0	85	0	153
+DMG	50	90	155	105	psychic	psychic	fighting	0	85	1	306
+DMG	50	90	155	105	psychic	psychic	fighting	0	93	0	167
+DMG	50	90	155	105	psychic	psychic	fighting	0	93	1	334
+DMG	50	90	155	105	psychic	psychic	fighting	0	100	0	180
+DMG	50	90	155	105	psychic	psychic	fighting	0	100	1	360
+DMG	50	80	85	65	ghost,poison	ghost	psychic	1	85	0	122
+DMG	50	80	85	65	ghost,poison	ghost	psychic	1	85	1	244
+DMG	50	80	85	65	ghost,poison	ghost	psychic	1	93	0	133
+DMG	50	80	85	65	ghost,poison	ghost	psychic	1	93	1	267
+DMG	50	80	85	65	ghost,poison	ghost	psychic	1	100	0	144
+DMG	50	80	85	65	ghost,poison	ghost	psychic	1	100	1	288
+DMG	50	95	80	105	water,flying	water	fire,flying	0	85	0	83
+DMG	50	95	80	105	water,flying	water	fire,flying	0	85	1	168
+DMG	50	95	80	105	water,flying	water	fire,flying	0	93	0	91
+DMG	50	95	80	105	water,flying	water	fire,flying	0	93	1	184
+DMG	50	95	80	105	water,flying	water	fire,flying	0	100	0	98
+DMG	50	95	80	105	water,flying	water	fire,flying	0	100	1	198
+DMG	50	95	70	120	electric	electric	water,flying	0	85	0	132
+DMG	50	95	70	120	electric	electric	water,flying	0	85	1	265
+DMG	50	95	70	120	electric	electric	water,flying	0	93	0	145
+DMG	50	95	70	120	electric	electric	water,flying	0	93	1	290
+DMG	50	95	70	120	electric	electric	water,flying	0	100	0	156
+DMG	50	95	70	120	electric	electric	water,flying	0	100	1	312
+DMG	50	85	130	80	normal	normal	ghost,poison	1	85	0	0
+DMG	50	85	130	80	normal	normal	ghost,poison	1	85	1	0
+DMG	50	85	130	80	normal	normal	ghost,poison	1	93	0	0
+DMG	50	85	130	80	normal	normal	ghost,poison	1	93	1	0
+DMG	50	85	130	80	normal	normal	ghost,poison	1	100	0	0
+DMG	50	85	130	80	normal	normal	ghost,poison	1	100	1	0
