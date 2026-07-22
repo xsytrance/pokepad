@@ -27,6 +27,7 @@ class Frame {
     fun get(x: Int, y: Int) = if (x in 0 until W && y in 0 until W) px[y * W + x] else 0
     fun on(x: Int, y: Int) = get(x, y) != 0
 }
+fun blankFrame() = Frame()
 fun shade(rgb: Int, f: Double): Int {
     val r = ((rgb shr 16 and 0xFF) * f).toInt().coerceIn(0, 255)
     val g = ((rgb shr 8 and 0xFF) * f).toInt().coerceIn(0, 255)
@@ -181,6 +182,38 @@ fun main(args: Array<String>) {
         draw(img.graphics, show, cols, scale, -1)
         ImageIO.write(img, "png", File("build/creature_gallery.png").apply { parentFile.mkdirs() })
         println("wrote build/creature_gallery.png"); return
+    }
+
+    fun panel(g: java.awt.Graphics, fr: Frame, ox: Int, oy: Int, scale: Int) {
+        val cell = W * scale
+        g.color = java.awt.Color(0x101014); g.fillRect(ox, oy, cell, cell)
+        for (y in 0 until W) for (x in 0 until W) { val c = fr.get(x, y); if (c == 0) continue
+            g.color = java.awt.Color(c); g.fillRect(ox + x * scale, oy + y * scale, scale, scale) }
+    }
+
+    if (args.getOrNull(0) == "action") {          // full battle-beat reel: summon → idle → attack/hurt → faint
+        val A = sp["charizard"]!!; val D = sp["venusaur"]!!
+        val aBase = Renderer.render(A.shape, A.types, FEATURES["charizard"]!!, -1)
+        val dBase = Renderer.render(D.shape, D.types, FEATURES["venusaur"]!!, -1)
+        val scale = 22
+        data class Beat(val a: Frame, val d: Frame)
+        val reel = ArrayList<Beat>()
+        for (t in 0 until Anim.SUMMON) reel.add(Beat(Anim.summon(aBase, t), Anim.summon(dBase, t)))     // both burst in
+        for (t in 0 until 8) reel.add(Beat(Renderer.render(A.shape, A.types, FEATURES["charizard"]!!, t),
+                                           Renderer.render(D.shape, D.types, FEATURES["venusaur"]!!, t))) // face off (idle)
+        for (t in 0 until Anim.ATTACK) reel.add(Beat(Anim.attack(aBase, t),                              // Charizard lunges…
+            if (t in 5 until 5 + Anim.HURT) Anim.hurt(dBase, t - 5) else dBase))                         // …Venusaur reels
+        for (t in 0 until Anim.FAINT) reel.add(Beat(aBase, Anim.faint(dBase, t)))                        // Venusaur goes down
+        for (t in 0 until 6) reel.add(Beat(Renderer.render(A.shape, A.types, FEATURES["charizard"]!!, t), blankFrame())) // victor idles
+
+        File("build/anim").mkdirs()
+        reel.forEachIndexed { i, b ->
+            val img = BufferedImage(2 * W * scale + scale, W * scale, BufferedImage.TYPE_INT_RGB)
+            val g = img.graphics; g.color = java.awt.Color(0x101014); g.fillRect(0, 0, img.width, img.height)
+            panel(g, b.a, 0, 0, scale); panel(g, b.d, W * scale + scale, 0, scale)
+            ImageIO.write(img, "png", File("build/anim/act_%03d.png".format(i)))
+        }
+        println("wrote ${reel.size} action frames (summon+idle+attack+faint)"); return
     }
 
     // animated: idle-loop frames for the GIF
