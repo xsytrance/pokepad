@@ -4,6 +4,33 @@ A running build log (newest on top). Decisions, milestones, and what's next.
 
 ## 2026-07-22
 
+- **END-TO-END: a real battle, rendered.** The engine and the art are now one
+  pipeline. `Battle.kt` gained a **typed event sink** (`sealed class Ev`:
+  `SendIn` / `Used` / `Faint` / `Win`) with a no-op default `emit` — purely
+  additive, so the **200/200** self-test and **285/285** cross-gate are
+  untouched. `kotlin/BattleReel.kt` (the **director**) runs a real Gen-III 2v2 on
+  the engine, captures that event stream, and turns each event into the matching
+  animation beat on a two-panel 15x15 grid: **SendIn→summon, Used→attack+hurt,
+  Faint→faint, Win→hold**. Fully autonomous (AI picks moves, the type chart +
+  damage formula decide everything). Output → `build/real_battle.gif` (Charizard
+  2-KOs and wins; Air Slash super-effective on Venusaur, etc.). **This is exactly
+  the pipeline the on-device Scene will run across two snapped blocks** — the only
+  thing left is wiring these files into the Android app (needs hardware).
+- **Action animations — the block's battle vocabulary.** `kotlin/Anim.kt`: four
+  beats, each a pure fn of `(base frame, t)` so the Scene fires them straight
+  from engine events. **summon** (Poké Ball drops, snaps open in a white burst,
+  creature materialises out of the flash and bounces to settle), **attack**
+  (wind-up → lunge with a leading impact streak → recover), **hurt** (white/red
+  flash + recoil shove), **faint** (desaturate to grey, tip over via shear, sink
+  off-bottom, fade). Poké Ball drawn from primitives (covenant-clean). Frame ops
+  (shiftH/shiftDown/shear/tint/grey/dim/revealDisk/over) all return fresh Frames.
+  Reel → `build/battle_beats.gif`.
+- **Idle animation.** `Renderer.render(…, t)` drives a 16-frame loop: a gentle
+  breathing bob, an eye-blink, and the flame-tail flickers tall/short.
+  `build/creature_idle.gif` (8 hero mon looping). Renderer `main` modes:
+  `static` (full 28-creature sheet), default (idle GIF frames), `action`
+  (2-panel beat reel).
+
 - **Kotlin on-device engine — bit-identical to the Python spec.** First step of
   the port that will run on the blocks. `kotlin/Pokepad.kt` implements the
   Gen-III core (stat formula, type chart, damage) in Kotlin; `tools/
