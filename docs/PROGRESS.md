@@ -2,6 +2,72 @@
 
 A running build log (newest on top). Decisions, milestones, and what's next.
 
+> **Where the app lives:** the standalone Android app is the `:pokepad-app`
+> Gradle module in the `clawdpad-app` repo (`applicationId dev.pokepad`,
+> label "Poképad"). This repo holds the reference engine (Python), the
+> cross-gate fixtures, the save-format tooling, and the design docs.
+
+## 2026-07-23 — the app becomes a game
+
+- **👑 2-PLAYER DUEL — verified phone-vs-phone.** The crown feature of the
+  [Arena master plan](ARENA_MASTERPLAN.md): two phones on one wifi, one hosts,
+  one joins (UDP-beacon auto-discovery, typed-IP fallback), each trainer
+  commands their own mon, and the **host runs the one true engine** — the
+  joiner sends only its move; the host resolves and broadcasts the turn's
+  event stream; both phones render the same truth mirrored to each trainer's
+  perspective. Pure-Kotlin protocol stack (`net/DuelProto|DuelCore|DuelNet`,
+  dependency-free line protocol) — which made it testable without Android:
+  desktop direct-wire battle ✓, socket-loopback battle ✓, PC-python-challenger
+  vs phone over real LAN ✓, then **Pixel 8 vs Pixel 10 Pro XL** ✓ (perfect
+  mirrored battle on both screens). If your Lightpad is connected, your block
+  mirrors YOUR mon + HP during the duel (`block/MirrorScene`).
+- **🎮 TRAINER MODE (Phase 2) — you give the commands.** `Battle` gained an
+  interactive per-turn driver (`startInteractive`/`stepInteractive`/`stepPvp`);
+  the Director can now render ONE turn's events as a mini-reel. UI: classic
+  move menu (type + power, type-tinted buttons), turn animates, prompt returns.
+  Win/lose ends in an unmistakable full-screen **🏆 VICTORY! / 💥 DEFEAT**
+  verdict overlay (added after playtest feedback — both players used to think
+  they'd won).
+- **🎤 VOICE — like the cartoon.** Toggle VOICE MODE and every turn it listens
+  by itself: say your Pokémon's **name** → ack chirp + vibration →
+  *"⚡ Salamence! …your command?"* → say the **attack**. Saying the move
+  directly also works; it re-listens on misses and backs off if it can't hear.
+  Works in Trainer mode and Duels (SpeechRecognizer + fuzzy matcher).
+- **🔊 Synthesized sound kit.** 10 chiptune SFX generated from pure code
+  (squares/triangles/sweeps/noise — zero sampled audio, covenant-clean):
+  summon ball-pop, hit/super/resist impacts, faint slide, victory fanfare,
+  defeat descend, menu blips, voice-ack chirp, block-link chime. Cues are
+  stamped into the reel at beat starts and fired frame-accurately at playback.
+- **📁 Your save, on-device (Phase 1).** `Gen3Save` — a Kotlin port of
+  `save/gen3.py`, verified byte-for-byte against the Python reference on a
+  real Emerald cartridge dump. "MY TEAM" loads a `.sav` via the system picker,
+  shows the real party (sprites, nicknames, natures, shinies), and any mon
+  battles with its true level/IVs/EVs/nature/moves. **Read-only, always.**
+  The loaded save is persisted and auto-restored at launch ("load once, keep
+  forever") and flows automatically into Trainer battles, Duels, and
+  block battles.
+- **⏱ Pacing.** `HP_PACE = 2`: effective HP pool doubled so fights breathe
+  like the anime (stats + damage formula remain real Gen-III; residuals stay
+  proportional). HP now holds until the impact frame, then drains over 4
+  frames.
+- **🎨 Hero art** grew to 19 hand-drawn species (front + back views — backs
+  power the first-person camera and the coming vertical face-off), including
+  the real save team (salamence/magcargo/smeargle). First-person camera is the
+  phone default; SIDE view one tap away.
+- **Smoothness pass** (no new features, by directive): edge-to-edge insets
+  fixed app-wide; duel disconnects return to the lobby (never eject); JOIN
+  scans until a host appears; back-press mid-battle confirms; NEW BATTLE
+  restarts without flicker; home buttons show live status ("MY TEAM — NICK ✓",
+  "BLOCKS — CONNECTED ✓").
+- **On the blocks:** snap-to-battle loops fresh matchups while snapped; the
+  lossy master→block-2 relay is made reliable by resending each frame from
+  block 2's real ACK position; if a save is loaded, your real mon lead the
+  block fights.
+- *Engineering notes:* Kotlin nests block comments (`/*` inside a KDoc broke a
+  build); Android 15 forces edge-to-edge (insets must be applied manually);
+  `getDevices()` misses an already-present USB-MIDI device (use the
+  added-callback / `getDevicesForTransport`).
+
 ## 2026-07-22
 
 - **END-TO-END: a real battle, rendered.** The engine and the art are now one
