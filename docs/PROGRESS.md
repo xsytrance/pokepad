@@ -2,10 +2,18 @@
 
 A running build log (newest on top). Decisions, milestones, and what's next.
 
-> **Where the app lives:** the standalone Android app is the `:pokepad-app`
-> Gradle module in the `clawdpad-app` repo (`applicationId dev.pokepad`,
-> label "Poképad"). This repo holds the reference engine (Python), the
-> cross-gate fixtures, the save-format tooling, and the design docs.
+> **Where the app lives:** HERE — `app/` (`applicationId dev.pokepad`, label
+> "Poképad"), migrated from the `clawdpad-app` repo's `:pokepad-app` module on
+> 2026-07-23 (pre-migration history in that repo's git log). This repo also
+> holds the reference engine (Python), the cross-gate fixtures, the
+> save-format tooling, and the design docs. Build/run: see `CLAUDE.md`.
+
+## 2026-07-23 — Poképad moves into its own house
+
+- The Android app module migrated from `clawdpad-app` into this repo as
+  `app/` (Gradle root scaffolding added; `include(":app")`). APK verified
+  building here; ClawdPad verified still building without it. From now on
+  all Poképad work — code, docs, sessions — happens in this repo.
 
 ## 2026-07-23 — the app becomes a game
 

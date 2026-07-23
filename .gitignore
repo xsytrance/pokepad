@@ -6,3 +6,5 @@ data/*.raw.json
 *.gci
 *.sav
 build/
+local.properties
+.gradle/
