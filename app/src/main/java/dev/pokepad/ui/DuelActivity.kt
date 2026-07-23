@@ -27,6 +27,7 @@ import dev.pokepad.net.DuelSide
 import dev.pokepad.net.HostCore
 import dev.pokepad.net.JoinCore
 import dev.pokepad.net.Proto
+import dev.pokepad.net.SwitchChoice
 import dev.pokepad.net.localIp
 import dev.pokepad.save.SaveData
 import java.util.Random
@@ -73,9 +74,11 @@ class DuelActivity : AppCompatActivity() {
     private var side: DuelSide? = null
     private var isHost = false
     private var autoplay = false
+    private var format = 1                        // host decides: 1/2/3, 6 = limitless
     @Volatile private var searching = false
     @Volatile private var inBattle = false
     private lateinit var mySpec: Proto.MonSpec
+    private val btnActions = arrayOfNulls<() -> Unit>(6)
 
     // block mirror
     @Volatile private var curReel: Reel? = null
@@ -88,6 +91,8 @@ class DuelActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         PokeData.ensure(this); SaveData.ensure(this); Sfx.ensure(this)
         mySpec = pickMySpec()
+        format = getSharedPreferences("pokepad", MODE_PRIVATE).getInt("duel_format", 1)
+        intent.getStringExtra("format")?.toIntOrNull()?.let { format = it }   // adb-testable
         autoplay = intent.getStringExtra("autoplay") == "1"
 
         val root = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setBackgroundColor(BG) }
@@ -109,6 +114,7 @@ class DuelActivity : AppCompatActivity() {
 
     private lateinit var fighterLine: TextView
     private lateinit var changeBtn: TextView
+    private lateinit var formatBtn: TextView
     private var fighterIdx = 0   // index into party; party.size = random
 
     private fun cycleFighter() {
@@ -143,6 +149,25 @@ class DuelActivity : AppCompatActivity() {
         return randomSpec()
     }
 
+    /** duel team: your chosen lead first, then the rest of the party; a random
+     *  lead still gets your party as back-up. The host trims to the format. */
+    private fun myTeam(): List<Proto.MonSpec> {
+        val lead = mySpec
+        val rest = (SaveData.truth?.party?.filter { it.species != null } ?: emptyList()).map { sm ->
+            val m = SaveData.mon(sm)
+            Proto.MonSpec(sm.species!!, sm.level, sm.nickname, sm.ability, sm.nature, sm.ivs, sm.evs, m.moves)
+        }.filterNot { it.toLine() == lead.toLine() }
+        return (listOf(lead) + rest).take(6)
+    }
+
+    private fun fmtLabel() = if (format >= 6) "∞ LIMITLESS" else "${format}V$format"
+
+    private fun cycleFormat() {
+        format = when (format) { 1 -> 2; 2 -> 3; 3 -> 6; else -> 1 }
+        getSharedPreferences("pokepad", MODE_PRIVATE).edit().putInt("duel_format", format).apply()
+        formatBtn.text = "⚔  FORMAT: ${fmtLabel()}"
+    }
+
     private fun randomSpec(): Proto.MonSpec {
         val ids = PokeData.speciesIds
         val sp = ids[rng.nextInt(ids.size)]
@@ -169,6 +194,8 @@ class DuelActivity : AppCompatActivity() {
         lobby.addView(fighterLine, lp(10).also { it.width = dp(300) })
         changeBtn = bigBtn("⟳  CHANGE FIGHTER", CARD) { cycleFighter() }
         lobby.addView(changeBtn, lp(10).also { it.width = dp(300); it.height = dp(44) })
+        formatBtn = bigBtn("⚔  FORMAT: ${fmtLabel()}", CARD) { cycleFormat() }
+        lobby.addView(formatBtn, lp(10).also { it.width = dp(300); it.height = dp(44) })
         refreshFighterLine()
         lobbyStatus = TextView(this).apply { text = ""; setTextColor(INK); textSize = 15f; gravity = Gravity.CENTER }
         lobby.addView(lobbyStatus, lp(18).also { it.width = dp(300) })
@@ -194,12 +221,13 @@ class DuelActivity : AppCompatActivity() {
         isHost = true; searching = false
         server?.stop(); client?.stop()
         hostBtn.visibility = View.GONE; joinBtn.visibility = View.GONE; ipRow.visibility = View.GONE
-        changeBtn.visibility = View.GONE
-        lobbyStatus.text = "Waiting for a challenger…\nTell them to tap JOIN.\n(your address: ${localIp()})"
-        val core = HostCore(PokeData.dex(), mySpec, System.currentTimeMillis(),
+        changeBtn.visibility = View.GONE; formatBtn.visibility = View.GONE
+        lobbyStatus.text = "Waiting for a challenger… (${fmtLabel()})\nTell them to tap JOIN.\n(your address: ${localIp()})"
+        val core = HostCore(PokeData.dex(), myTeam(), format, System.currentTimeMillis(),
             send = { l -> server?.send(l) },
             onReel = { r -> ui.post { playReel(r) } },
             onMenu = { ui.post { showMenu() } },
+            onSwitchMenu = { c -> ui.post { showSwitchMenu(c) } },
             onStatus = { s -> ui.post { prompt.text = s } },
             onOver = { won -> ui.post { showResult(won) } })
         side = core
@@ -214,7 +242,7 @@ class DuelActivity : AppCompatActivity() {
         isHost = false; searching = true
         server?.stop(); client?.stop()
         hostBtn.visibility = View.GONE; joinBtn.visibility = View.GONE; ipRow.visibility = View.VISIBLE
-        changeBtn.visibility = View.GONE
+        changeBtn.visibility = View.GONE; formatBtn.visibility = View.GONE
         lobbyStatus.text = "Searching for a host on your wifi…"
         scan()
     }
@@ -232,10 +260,11 @@ class DuelActivity : AppCompatActivity() {
     private fun connectTo(ip: String) {
         searching = false
         client?.stop()
-        val core = JoinCore(PokeData.dex(), mySpec,
+        val core = JoinCore(PokeData.dex(), myTeam(),
             send = { l -> client?.send(l) },
             onReel = { r -> ui.post { playReel(r) } },
             onMenu = { ui.post { showMenu() } },
+            onSwitchMenu = { c -> ui.post { showSwitchMenu(c) } },
             onStatus = { s -> ui.post { prompt.text = s } },
             onOver = { won -> ui.post { showResult(won) } })
         side = core
@@ -255,7 +284,7 @@ class DuelActivity : AppCompatActivity() {
         side = null; curReel = null
         showLobby()
         hostBtn.visibility = View.VISIBLE; joinBtn.visibility = View.VISIBLE; ipRow.visibility = View.GONE
-        changeBtn.visibility = View.VISIBLE
+        changeBtn.visibility = View.VISIBLE; formatBtn.visibility = View.VISIBLE
         lobbyStatus.text = "$msg\nready when you are."
     }
 
@@ -272,14 +301,14 @@ class DuelActivity : AppCompatActivity() {
         }
         prompt = TextView(this).apply { setTextColor(INK); textSize = 15f; setTypeface(typeface, Typeface.BOLD) }
         battlePanel.addView(prompt)
-        grid = GridLayout(this).apply { columnCount = 2 }
+        grid = GridLayout(this).apply { columnCount = 2; rowCount = 3 }
         val cellW = (resources.displayMetrics.widthPixels - dp(40)) / 2
-        repeat(4) {
+        repeat(6) { i ->
             val btn = TextView(this).apply {
                 textSize = 15f; setTextColor(INK); gravity = Gravity.CENTER; setTypeface(typeface, Typeface.BOLD)
                 isClickable = true; isFocusable = true
             }
-            btn.setOnClickListener { (btn.tag as? String)?.let { m -> Sfx.play("blip"); pick(m) } }
+            btn.setOnClickListener { btnActions[i]?.let { act -> Sfx.play("blip"); act() } }
             moveBtns.add(btn)
             grid.addView(btn, GridLayout.LayoutParams().apply {
                 width = cellW; height = dp(58); setMargins(dp(4), dp(6), dp(4), 0)
@@ -356,25 +385,46 @@ class DuelActivity : AppCompatActivity() {
         prompt.text = "What will ${s.myName()} do?"
         val dex = PokeData.dex()
         val moves = s.myMoves()
-        for (i in 0 until 4) {
+        for (i in 0 until 6) {
             val btn = moveBtns[i]
-            if (i < moves.size) {
+            if (i < moves.size && i < 4) {
                 val name = moves[i]; val mv = dex.moves[name]
                 val disp = name.replace("-", " ").replaceFirstChar { it.uppercase() }
                 btn.text = if ((mv?.power ?: 0) > 0) "$disp\n${mv?.type?.uppercase()} · ${mv?.power}" else "$disp\n${mv?.type?.uppercase()}"
-                btn.tag = name
+                btnActions[i] = { pick(name) }
                 btn.background = GradientDrawable().apply {
                     cornerRadius = dp(12).toFloat(); setColor(typeColor(mv?.type)); setStroke(dp(1), Color.parseColor("#00000040"))
                 }
                 btn.visibility = View.VISIBLE
-            } else btn.visibility = View.INVISIBLE
+            } else { btn.visibility = if (i < 4) View.INVISIBLE else View.GONE; btnActions[i] = null }
         }
         setMenu(true)
-        commander.menuShown(listOf(mySpec.nickname, mySpec.species), moves)
+        commander.menuShown(listOf(side?.myName() ?: mySpec.nickname, mySpec.species), moves)
         if (autoplay && moves.isNotEmpty()) ui.postDelayed({ pick(moves[0]) }, 500)
     }
 
+    private fun showSwitchMenu(choices: List<SwitchChoice>) {
+        showBattle()
+        prompt.text = "${side?.myName() ?: "Your mon"} fainted! Who's next?"
+        for (i in 0 until 6) {
+            val btn = moveBtns[i]
+            if (i < choices.size) {
+                val c = choices[i]
+                btn.text = c.label
+                btn.background = GradientDrawable().apply {
+                    cornerRadius = dp(12).toFloat(); setColor(Color.parseColor("#1A2408")); setStroke(dp(1), GOLD)
+                }
+                btnActions[i] = { pickSwitch(c.idx) }
+                btn.visibility = View.VISIBLE
+            } else { btn.visibility = View.GONE; btnActions[i] = null }
+        }
+        grid.visibility = View.VISIBLE; mic.visibility = View.GONE
+        commander.menuHidden()
+        if (autoplay && choices.isNotEmpty()) ui.postDelayed({ pickSwitch(choices[0].idx) }, 500)
+    }
+
     private fun pick(move: String) { setMenu(false); side?.chooseMove(move) }
+    private fun pickSwitch(idx: Int) { setMenu(false); side?.chooseSwitch(idx) }
 
     private fun showResult(won: Boolean) {
         arena.showVerdict(won)

@@ -18,11 +18,17 @@ import dev.pokepad.core.Mon
  * sanitized on send anyway.) A python or desktop-Kotlin peer can speak this in
  * a few lines — which is also how it's tested.
  *
- *   join → host   HELLO|<name>|<monSpec>
- *   host → join   START|<seed>|<hostMonSpec>|<joinMonSpec>|<ev;ev;...>   (opening send-ins)
+ *   join → host   HELLO|<name>|<monSpec>|<benchSpec;benchSpec;...>
+ *   host → join   START|<seed>|<hostMonSpec>|<joinMonSpec>|<ev;ev;...>|<format>|<hostBench>|<joinBench>
  *   join → host   MOVE|<turn>|<move>
+ *   join → host   SWITCH|<turn>|<teamIdx>          (my replacement after a faint)
  *   host → join   TURN|<turn>|<hpbL>|<hpbR>|<hpL>|<hpR>|<over01>|<winSide|->|<ev;ev;...>
+ *                     |<await>|<choicesL>|<choicesR>|<maxL>|<maxR>
  *   either        AGAIN            (rematch request)   ·   BYE
+ *
+ * Team fields are APPENDED so a 1v1-era peer still parses the prefix. await =
+ * which sides (host coords, "-"/"L"/"R"/"LR") must send a replacement in;
+ * choices = eligible bench indices (csv) per side; max = actives' max HP.
  *
  *   monSpec = species,level,nickname,ability,nature,iv1:...:iv6,ev1:...:ev6,move1:move2:...
  *   ev      = send,<side>,<species>,<name> | used,<side>,<species>,<move>,<dmg>,<eff>
@@ -72,7 +78,7 @@ object Proto {
 
     // ── events ───────────────────────────────────────────────────────────────
     fun evToStr(e: Ev): String = when (e) {
-        is Ev.SendIn -> "send,${e.side},${e.species},${clean(e.name)}"
+        is Ev.SendIn -> "send,${e.side},${e.species},${clean(e.name)},${e.hpFrac}"
         is Ev.Used -> "used,${e.side},${e.species},${e.move},${e.dmg},${e.eff},${clean(e.name)}"
         is Ev.Faint -> "faint,${e.side},${e.species},${clean(e.name)}"
         is Ev.Win -> "win,${e.side},${e.species},${clean(e.name)}"
@@ -80,7 +86,8 @@ object Proto {
     fun evFromStr(s: String): Ev? {
         val f = s.split(","); if (f.size < 3) return null
         return when (f[0]) {
-            "send" -> Ev.SendIn(f[1], f[2], f.getOrElse(3) { f[2] })
+            "send" -> Ev.SendIn(f[1], f[2], f.getOrElse(3) { f[2] },
+                f.getOrNull(4)?.toFloatOrNull() ?: 1f)
             "used" -> Ev.Used(f[1], f[2], f.getOrElse(3) { "" },
                 f.getOrNull(4)?.toIntOrNull() ?: 0, f.getOrNull(5)?.toDoubleOrNull() ?: 1.0,
                 f.getOrElse(6) { f[2] })
@@ -104,10 +111,19 @@ object Proto {
     }
 
     // ── messages ─────────────────────────────────────────────────────────────
-    fun hello(name: String, mon: MonSpec) = "HELLO|${clean(name)}|${mon.toLine()}"
-    fun start(seed: Long, host: MonSpec, join: MonSpec, opening: List<Ev>) =
-        "START|$seed|${host.toLine()}|${join.toLine()}|${evsToStr(opening)}"
+    fun benchToStr(bench: List<MonSpec>) = bench.joinToString(";") { it.toLine() }
+    fun benchFromStr(s: String) = s.split(";").filter { it.isNotBlank() }.mapNotNull { MonSpec.fromLine(it) }
+
+    fun hello(name: String, team: List<MonSpec>) =
+        "HELLO|${clean(name)}|${team.first().toLine()}|${benchToStr(team.drop(1))}"
+    fun start(seed: Long, host: List<MonSpec>, join: List<MonSpec>, opening: List<Ev>, format: Int) =
+        "START|$seed|${host.first().toLine()}|${join.first().toLine()}|${evsToStr(opening)}|$format|" +
+        "${benchToStr(host.drop(1))}|${benchToStr(join.drop(1))}"
     fun move(turn: Int, move: String) = "MOVE|$turn|$move"
-    fun turn(n: Int, hpbL: Int, hpbR: Int, hpL: Int, hpR: Int, over: Boolean, winSide: String?, evs: List<Ev>) =
-        "TURN|$n|$hpbL|$hpbR|$hpL|$hpR|${if (over) 1 else 0}|${winSide ?: "-"}|${evsToStr(evs)}"
+    fun switchMsg(turn: Int, idx: Int) = "SWITCH|$turn|$idx"
+    fun turn(n: Int, hpbL: Int, hpbR: Int, hpL: Int, hpR: Int, over: Boolean, winSide: String?, evs: List<Ev>,
+             await: String = "-", choicesL: List<Int> = emptyList(), choicesR: List<Int> = emptyList(),
+             maxL: Int = 0, maxR: Int = 0) =
+        "TURN|$n|$hpbL|$hpbR|$hpL|$hpR|${if (over) 1 else 0}|${winSide ?: "-"}|${evsToStr(evs)}" +
+        "|${await.ifEmpty { "-" }}|${choicesL.joinToString(",")}|${choicesR.joinToString(",")}|$maxL|$maxR"
 }
