@@ -14,7 +14,7 @@ private fun outline(px: IntArray): IntArray {
 }
 
 fun main() {
-    val show = listOf("pikachu","charmander","squirtle","bulbasaur","gengar","snorlax","jigglypuff","magikarp","charizard","blastoise","venusaur","mewtwo","eevee","gyarados","meowth","psyduck","salamence","magcargo","smeargle")
+    val show = listOf("pikachu","charmander","squirtle","bulbasaur","gengar","snorlax","jigglypuff","magikarp","charizard","blastoise","venusaur","mewtwo","eevee","gyarados","meowth","psyduck","salamence","magcargo","smeargle","sceptile","blaziken","swampert","rayquaza","metagross","gardevoir","flygon","milotic")
     val scale = 15; val cell = 15 * scale; val gap = 8; val pad = 22
     val pairW = cell * 2 + gap                      // front + back
     val cols = 4
