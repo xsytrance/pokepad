@@ -35,7 +35,7 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         PokeData.ensure(this)   // load the dex once
         dev.pokepad.save.SaveData.ensure(this)   // auto-restores your last-loaded save
-        Sfx.ensure(this)
+        Sfx.ensure(this); Music.ensure(this)
 
         val scroll = ScrollView(this).apply { setBackgroundColor(BG); isFillViewport = true }
         val root = LinearLayout(this).apply {
@@ -97,6 +97,13 @@ class MainActivity : AppCompatActivity() {
         }
         root.addView(blocksBtn, lp(top = 12).also { it.width = dp(300); it.height = dp(56) })
 
+        musicBtn = bigButton(musicLabel(), CARD, DIM) {
+            Music.toggle(this)
+            musicBtn?.text = musicLabel()
+            if (Music.enabled) Music.play(this, "music_menu", 0.35f)
+        }
+        root.addView(musicBtn, lp(top = 12).also { it.width = dp(300); it.height = dp(48) })
+
         root.addView(TextView(this).apply {
             text = "facts are sacred · feelings are free"
             setTextColor(DIM); textSize = 11.5f; gravity = Gravity.CENTER
@@ -110,6 +117,9 @@ class MainActivity : AppCompatActivity() {
 
     private var teamBtn: TextView? = null
     private var blocksBtn: TextView? = null
+    private var musicBtn: TextView? = null
+
+    private fun musicLabel() = if (Music.enabled) "🎵  MUSIC: ON" else "🔇  MUSIC: OFF"
 
     override fun onResume() {
         super.onResume()

@@ -13,8 +13,26 @@ object Music {
     @Volatile private var player: MediaPlayer? = null
     @Volatile private var current: String? = null
     @Volatile var enabled = true
+        private set
+    @Volatile private var loaded = false
+
+    /** load the persisted setting; screens call play() freely and this gates it */
+    fun ensure(ctx: Context) {
+        if (loaded) return
+        enabled = ctx.getSharedPreferences("pokepad", Context.MODE_PRIVATE).getBoolean("music", true)
+        loaded = true
+    }
+
+    /** flip + persist; stops the current track immediately when turning off */
+    fun toggle(ctx: Context): Boolean {
+        enabled = !enabled; loaded = true
+        ctx.getSharedPreferences("pokepad", Context.MODE_PRIVATE).edit().putBoolean("music", enabled).apply()
+        if (!enabled) stop()
+        return enabled
+    }
 
     fun play(ctx: Context, name: String, volume: Float = 0.45f) {
+        ensure(ctx)
         if (!enabled) return
         if (current == name && player?.isPlaying == true) return
         stop()
