@@ -88,8 +88,8 @@ class TrainerView(context: Context) : View(context) {
         canvas.drawBitmap(rightBmp[i], src, RectF(oppCx - oppSize / 2, oppCy - oppSize, oppCx + oppSize / 2, oppCy), px)
         canvas.drawBitmap(leftBmp[i], src, RectF(plCx - plSize / 2, plCy - plSize, plCx + plSize / 2, plCy), px)
 
-        hpBox(canvas, dp(14f), dp(84f), w * 0.52f, r.rightName, c.hpR)   // clear of the status bar
-        hpBox(canvas, w - dp(14f) - w * 0.52f, h * 0.44f, w * 0.52f, r.leftName, c.hpL)
+        hpBox(canvas, dp(14f), dp(84f), w * 0.52f, c.nameR.ifEmpty { r.rightName }, c.hpR)   // clear of the status bar
+        hpBox(canvas, w - dp(14f) - w * 0.52f, h * 0.44f, w * 0.52f, c.nameL.ifEmpty { r.leftName }, c.hpL)
 
         val mbTop = h - dp(70f)
         round(canvas, dp(10f), mbTop, w - dp(10f), h - dp(10f), dp(12f), BOX, BOX_LINE, dp(2f))

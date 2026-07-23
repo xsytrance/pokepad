@@ -116,8 +116,8 @@ class BattleView(context: Context) : View(context) {
         drawSprite(canvas, leftBmp[i], plCx - plSize / 2, plCyBase - plSize, plSize)
 
         // HP boxes (opponent box drops below the status bar)
-        drawHpBox(canvas, dp(14f), dp(28f) + insetTop, w * 0.52f, r.rightName, c.hpR, alignRight = false)
-        drawHpBox(canvas, w - dp(14f) - w * 0.52f, h * 0.44f, w * 0.52f, r.leftName, c.hpL, alignRight = true)
+        drawHpBox(canvas, dp(14f), dp(28f) + insetTop, w * 0.52f, c.nameR.ifEmpty { r.rightName }, c.hpR, alignRight = false)
+        drawHpBox(canvas, w - dp(14f) - w * 0.52f, h * 0.44f, w * 0.52f, c.nameL.ifEmpty { r.leftName }, c.hpL, alignRight = true)
 
         // message box (lifts above the nav bar)
         val mbTop = h - dp(96f) - insetBottom

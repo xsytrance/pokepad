@@ -174,7 +174,9 @@ object Abilities {
 
 // ── battle events (typed sink for the renderer/Scene; default is no-op) ──────
 sealed class Ev {
-    data class SendIn(val side: String, val species: String, val name: String) : Ev()
+    data class SendIn(val side: String, val species: String, val name: String,
+                      /** incoming mon's hp/maxHp — mid-battle switch-ins aren't always full */
+                      val hpFrac: Float = 1f) : Ev()
     data class Used(val side: String, val species: String, val move: String, val dmg: Int, val eff: Double,
                     val name: String = species) : Ev()
     data class Faint(val side: String, val species: String, val name: String = species) : Ev()
@@ -188,9 +190,35 @@ class Battle(val dex: Dex, left: List<Mon>, right: List<Mon>, seed: Long = 0,
     var li = 0; var ri = 0
     val rng = Random(seed)
     var over = false; var winner: Mon? = null
+    var winSide: String? = null
+    /** interactive teams: sides listed here choose their own replacement on faint
+     *  (handleFaints defers instead of auto-switching; UI calls sendIn). */
+    val humanSides = HashSet<String>()
+    private val pending = HashSet<String>()
+    fun awaitingSwitch(side: String) = side in pending
     val left get() = ls[li]
     val right get() = rs[ri]
     fun other(p: Mon) = if (p === left) right else left
+    fun team(side: String) = if (side == "L") ls else rs
+
+    /** benched, alive team indices for `side` — the legal sendIn choices */
+    fun switchChoices(side: String): List<Int> {
+        val t = team(side); val cur = if (side == "L") li else ri
+        return t.indices.filter { it != cur && !t[it].fainted }
+    }
+
+    /** human replacement after a faint (side must be awaiting): send team[idx] in. */
+    fun sendIn(side: String, idx: Int) {
+        if (side !in pending) return
+        val t = team(side)
+        if (idx !in t.indices || t[idx].fainted) return
+        if (side == "L") li = idx else ri = idx
+        pending.remove(side)
+        val m = t[idx]; val foe = if (side == "L") right else left
+        log("  → sends out ${m.name}!")
+        emit(Ev.SendIn(side, m.species.name, m.name, m.hp.toFloat() / m.maxHp))
+        Abilities.onSwitchIn(m, foe, log)
+    }
 
     fun chooseMove(a: Mon, d: Mon): String {
         var best = a.moves[0]; var bestScore = -1.0
@@ -343,21 +371,27 @@ class Battle(val dex: Dex, left: List<Mon>, right: List<Mon>, seed: Long = 0,
         for (key in listOf("L", "R")) {
             val team = if (key == "L") ls else rs
             val act = if (key == "L") left else right
-            if (!act.fainted) continue
+            if (!act.fainted || key in pending) continue
             log("  ${act.name} fainted!")
             emit(Ev.Faint(key, act.species.name, act.name))
             if (sideAlive(team)) {
+                if (key in humanSides) { pending.add(key); continue }   // the player picks
                 val foe = if (key == "L") right else left
                 val nxt = bestSwitch(team, foe)
                 if (key == "L") li = nxt else ri = nxt
                 log("  → sends out ${team[nxt].name}!")
-                emit(Ev.SendIn(key, team[nxt].species.name, team[nxt].name))
+                emit(Ev.SendIn(key, team[nxt].species.name, team[nxt].name,
+                        team[nxt].hp.toFloat() / team[nxt].maxHp))
                 Abilities.onSwitchIn(team[nxt], foe, log)
             }
         }
         val la = sideAlive(ls); val ra = sideAlive(rs)
-        if (!(la && ra)) { over = true; winner = if (la) left else if (ra) right else null
-            winner?.let { emit(Ev.Win(if (it === left) "L" else "R", it.species.name, it.name)) } }
+        if (!(la && ra)) {
+            over = true; pending.clear()
+            winSide = if (la) "L" else if (ra) "R" else null
+            winner = when (winSide) { "L" -> ls.first { !it.fainted }; "R" -> rs.first { !it.fainted }; else -> null }
+            winner?.let { emit(Ev.Win(winSide!!, it.species.name, it.name)) }
+        }
     }
 
     private fun endOfTurn(p: Mon) {
@@ -413,13 +447,14 @@ class Battle(val dex: Dex, left: List<Mon>, right: List<Mon>, seed: Long = 0,
     fun stepPvp(leftMove: String, rightMove: String) = stepTurn(leftMove, rightMove)
 
     private fun stepTurn(leftMove: String, rightMove: String) {
-        if (over) return
+        if (over || pending.isNotEmpty()) return   // a replacement must be sent in first
         left.tookDamage = false; right.tookDamage = false
         val picks = mapOf(left to leftMove, right to rightMove)
         val order = picks.keys.sortedWith(compareByDescending<Mon> { dex.moves[picks[it]]!!.priority }
                 .thenByDescending { it.effSpeed() }.thenBy { rng.nextDouble() })
         for (a in order) {
             if (over || a.fainted) continue
+            if (other(a).fainted) continue          // foe's slot is empty (awaiting a human switch)
             act(a, other(a), picks[a]!!); handleFaints()
             if (over) break
         }

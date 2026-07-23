@@ -23,7 +23,10 @@ class Cell(val left: IntArray, val right: IntArray,
           val hpL: Float, val hpR: Float,
           val banner: String, val bannerHot: Boolean, val msg: String,
           /** sound cue fired when playback reaches this cell ("" = none) */
-          val sfx: String = "")
+          val sfx: String = "",
+          /** HP-box display names — change mid-reel when a team battle switches mon
+           *  ("" = fall back to the reel's leftName/rightName) */
+          val nameL: String = "", val nameR: String = "")
 
 class Reel(val cells: List<Cell>, val leftName: String, val rightName: String, val winnerName: String)
 
@@ -77,9 +80,9 @@ object Director {
                      leftBack: Boolean = false, winnerName: String = "", bothOut: Boolean = false): Reel {
         // ── render helpers (the left/player side can be a back view) ───────
         fun feats(sp: String) = FEATURES[sp] ?: autoFeatures(dex.species[sp]!!.types)
-        fun backOf(sp: String) = leftBack && sp == leftSp
-        fun still(sp: String) = Renderer.render(dex.species[sp]!!.shape, dex.species[sp]!!.types, feats(sp), -1, backOf(sp), sp)
-        fun idle(sp: String, t: Int) = Renderer.render(dex.species[sp]!!.shape, dex.species[sp]!!.types, feats(sp), t, backOf(sp), sp)
+        fun backOf(side: String) = leftBack && side == "L"   // whole L side is the player, incl. switch-ins
+        fun still(sp: String, side: String) = Renderer.render(dex.species[sp]!!.shape, dex.species[sp]!!.types, feats(sp), -1, backOf(side), sp)
+        fun idle(sp: String, t: Int, side: String) = Renderer.render(dex.species[sp]!!.shape, dex.species[sp]!!.types, feats(sp), t, backOf(side), sp)
 
         val cells = ArrayList<Cell>()
         val cur = HashMap<String, String>()
@@ -88,12 +91,13 @@ object Director {
         var gt = 0
         var msg = ""   // the message-box line; lingers through the following pause
         var cue = ""   // one-shot sound cue for the NEXT pushed cell
+        var nmL = cap(leftSp); var nmR = cap(rightSp)   // HP-box names track switches
         fun push(l: IntArray, r: IntArray, banner: String, hot: Boolean) {
-            cells.add(Cell(l, r, (hpL / maxL).coerceIn(0f, 1f), (hpR / maxR).coerceIn(0f, 1f), banner, hot, msg, cue))
+            cells.add(Cell(l, r, (hpL / maxL).coerceIn(0f, 1f), (hpR / maxR).coerceIn(0f, 1f), banner, hot, msg, cue, nmL, nmR))
             cue = ""; gt++
         }
         fun moveName(m: String) = m.replace("-", " ").replaceFirstChar { it.uppercase() }
-        fun sideIdle(side: String) = cur[side]?.let { idle(it, gt).px.copyOf() } ?: IntArray(W * W)
+        fun sideIdle(side: String) = cur[side]?.let { idle(it, gt, side).px.copyOf() } ?: IntArray(W * W)
         fun compose(actSide: String, actPx: IntArray, banner: String, hot: Boolean) {
             val otherSide = if (actSide == "L") "R" else "L"
             val oth = sideIdle(otherSide)
@@ -111,9 +115,11 @@ object Director {
         for (ev in events) when (ev) {
             is Ev.SendIn -> {
                 cur[ev.side] = ev.species
+                if (ev.side == "L") { hpL = ev.hpFrac * maxL; nmL = ev.name.ifBlank { cap(ev.species) } }
+                else { hpR = ev.hpFrac * maxR; nmR = ev.name.ifBlank { cap(ev.species) } }
                 msg = "${ev.name.ifBlank { cap(ev.species) }} appeared!"
                 cue = "summon"
-                for (t in 0 until Anim.SUMMON) compose(ev.side, Anim.summon(still(ev.species), t).px.copyOf(), "", false)
+                for (t in 0 until Anim.SUMMON) compose(ev.side, Anim.summon(still(ev.species, ev.side), t).px.copyOf(), "", false)
                 gap(2)
             }
             is Ev.Used -> {
@@ -131,9 +137,10 @@ object Director {
                         val v = pre + (post - pre) * f
                         if (defSide == "L") hpL = v else hpR = v
                     }
-                    val atk = Anim.attack(still(ev.species), t).px.copyOf()
+                    val atk = Anim.attack(still(ev.species, ev.side), t).px.copyOf()
                     val hurtT = t - 4
-                    val def = if (ev.dmg > 0 && hurtT in 0 until Anim.HURT) Anim.hurt(still(cur[defSide]!!), hurtT).px.copyOf()
+                    val def = if (ev.dmg > 0 && hurtT in 0 until Anim.HURT && cur[defSide] != null)
+                                  Anim.hurt(still(cur[defSide]!!, defSide), hurtT).px.copyOf()
                               else sideIdle(defSide)
                     push(if (ev.side == "L") atk else def, if (ev.side == "L") def else atk, banner, hot)
                 }
@@ -143,7 +150,7 @@ object Director {
             is Ev.Faint -> {
                 msg = "${ev.name.ifBlank { cap(ev.species) }} fainted!"
                 cue = "faint"
-                for (t in 0 until Anim.FAINT) compose(ev.side, Anim.faint(still(ev.species), t).px.copyOf(), "", false)
+                for (t in 0 until Anim.FAINT) compose(ev.side, Anim.faint(still(ev.species, ev.side), t).px.copyOf(), "", false)
                 cur.remove(ev.side)
                 gap(1)
             }
@@ -151,7 +158,7 @@ object Director {
                 val wname = ev.name.ifBlank { cap(ev.species) }
                 msg = "$wname wins!"
                 cue = if (ev.side == "L") "victory" else "defeat"   // L = the viewer's side
-                repeat(16) { compose(ev.side, idle(ev.species, gt).px.copyOf(), "${wname.uppercase()} WINS", true) }
+                repeat(16) { compose(ev.side, idle(ev.species, gt, ev.side).px.copyOf(), "${wname.uppercase()} WINS", true) }
             }
         }
 
