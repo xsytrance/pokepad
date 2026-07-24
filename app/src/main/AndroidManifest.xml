@@ -60,6 +60,11 @@
             android:exported="true"
             android:screenOrientation="portrait" />
 
+        <activity
+            android:name=".ui.ShowcaseActivity"
+            android:exported="true"
+            android:screenOrientation="portrait" />
+
         <service
             android:name=".block.HostService"
             android:exported="false"

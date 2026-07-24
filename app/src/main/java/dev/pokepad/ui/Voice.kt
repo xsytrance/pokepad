@@ -35,6 +35,35 @@ object Voice {
         return null
     }
 
+    /** like listen(), but streams PARTIAL hypotheses as the user is still
+     *  talking — this is how the Pokéball half-opens on "Pika…" before the
+     *  sentence ends. onPartial may fire many times; onResult exactly once. */
+    fun listenPartial(ctx: Context, onPartial: (List<String>) -> Unit, onResult: (List<String>) -> Unit) {
+        val sr = try { SpeechRecognizer.createSpeechRecognizer(ctx) } catch (e: Exception) { onResult(emptyList()); return }
+        sr.setRecognitionListener(object : RecognitionListener {
+            override fun onReadyForSpeech(params: Bundle?) {}
+            override fun onBeginningOfSpeech() {}
+            override fun onRmsChanged(rmsdB: Float) {}
+            override fun onBufferReceived(buffer: ByteArray?) {}
+            override fun onEndOfSpeech() {}
+            override fun onError(error: Int) { runCatching { sr.destroy() }; onResult(emptyList()) }
+            override fun onResults(results: Bundle) {
+                val hyps = results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION) ?: arrayListOf()
+                runCatching { sr.destroy() }; onResult(hyps.toList())
+            }
+            override fun onPartialResults(partialResults: Bundle?) {
+                val hyps = partialResults?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION) ?: return
+                if (hyps.isNotEmpty()) onPartial(hyps.toList())
+            }
+            override fun onEvent(eventType: Int, params: Bundle?) {}
+        })
+        val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
+            .putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+            .putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 5)
+            .putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
+        runCatching { sr.startListening(intent) }.onFailure { onResult(emptyList()) }
+    }
+
     fun listen(ctx: Context, onState: (String) -> Unit, onResult: (List<String>) -> Unit) {
         val sr = try { SpeechRecognizer.createSpeechRecognizer(ctx) } catch (e: Exception) { onResult(emptyList()); return }
         sr.setRecognitionListener(object : RecognitionListener {

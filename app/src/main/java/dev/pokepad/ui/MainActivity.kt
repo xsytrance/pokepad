@@ -78,6 +78,11 @@ class MainActivity : AppCompatActivity() {
             startActivity(Intent(this, DuelActivity::class.java))
         }, lp(top = 12).also { it.width = dp(300); it.height = dp(56) })
 
+        // the attract mode: the block IS a Pokéball, voice cracks it open
+        root.addView(bigButton("🔴  POKÉBALL SHOWCASE", CARD, GOLD) {
+            startActivity(Intent(this, ShowcaseActivity::class.java))
+        }, lp(top = 12).also { it.width = dp(300); it.height = dp(56) })
+
         // watch a quick auto-battle
         root.addView(bigButton("⚔  QUICK BATTLE", CARD, INK) {
             startActivity(Intent(this, BattleActivity::class.java))   // random matchup

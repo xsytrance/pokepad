@@ -8,6 +8,29 @@ A running build log (newest on top). Decisions, milestones, and what's next.
 > holds the reference engine (Python), the cross-gate fixtures, the
 > save-format tooling, and the design docs. Build/run: see `CLAUDE.md`.
 
+## 2026-07-24 — 🔴 POKÉBALL SHOWCASE (attract mode)
+
+- **The block IS a Pokéball.** New home-screen mode: the glass renders a
+  closed ball (breathing button, the occasional wobble — something's alive in
+  there). Say a mon's name and **before you finish the sentence** the top
+  shell cracks open for a peek (streamed speech partials via the new
+  `Voice.listenPartial`); say **"I choose you!"** and it bursts open — your
+  REAL save mon standing on the glass, shiny sparkle if it earned one.
+  Say "return!" to recall it into the ball.
+- **Double-tap the glass → stat pages** (block touch decode drives it; the
+  phone card mirrors, and tapping the card does the same): mon → Lv + POWER
+  bar (real stat total) → six stat bars (the actual save spread, 3×5 pixel
+  digit font for the level). `Scene.onTouch` finally earns its keep.
+- **Attack demos on phone + block.** Tap (or say) a move: the block washes in
+  a type-colored shockwave while the mon lunges; the phone flashes the same
+  color with a sprite lunge and impact SFX. Works with every real move on the
+  mon's save set.
+- Transport-agnostic: USB or Bluetooth MIDI (the Host stack never cared).
+  Phone-only fallback when no block is linked — the ball lives on screen.
+  No save loaded → three random stand-ins so the demo always works.
+- `block/PokeballScene` is desktop-pure (sprite source injected):
+  `build/ball_gallery.png` renders all 11 states off-device for review.
+
 ## 2026-07-24 — formats, face-off, and the wire grows teams
 
 - **⚔️ MULTI-MON FORMATS — 1V1 / 2V2 / 3V3 / ∞ LIMITLESS, everywhere.** The

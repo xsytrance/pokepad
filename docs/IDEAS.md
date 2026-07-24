@@ -3,6 +3,27 @@
 My own suggestions as I build. Not commitments — a menu to pull from. Newest on
 top. (Rod asked me to always add ideas/improvements as I go.)
 
+## Pokéball Showcase (2026-07-24)
+
+- **Species "cries".** Synthesize a per-species chirp from its stats/types
+  (pure-code, covenant-clean: base pitch from species id, contour from shape)
+  and play it at the reveal — every mon sounding different sells it hard.
+- **Attract auto-cycle.** Idle in showcase for ~60s → the ball starts showing
+  the party on its own (peek → reveal → a move → return, next mon), like a
+  shop-window demo loop. One flag on the existing state machine.
+- **Party carousel on the ball.** Swipe the glass left/right while closed to
+  choose WHICH mon is "in" the ball (a colored dot per party slot along the
+  bottom row); the name you speak still overrides.
+- **Throw gesture.** Press-and-flick on the glass = throwing the ball: the
+  ball art shrinks/arcs then bursts open. Touch decode already gives
+  velocity — the flick IS the throw strength; harder throw = bigger burst.
+- **Shiny ball tint.** While a shiny is inside, the closed ball's button
+  glints gold every few seconds — collectors will notice before the reveal.
+- **"Who's that Pokémon?"** party game: the block shows the mon's silhouette
+  (all pixels one color), friends guess, any correct name spoken reveals.
+- **Showcase → battle handoff.** From a revealed mon, say "battle!" to jump
+  straight into Trainer mode with that mon as the lead.
+
 ## Engine & AI
 
 - **[MOSTLY DONE] Model move drawbacks in the AI (found live).** Fixed: the
