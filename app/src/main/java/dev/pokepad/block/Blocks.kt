@@ -41,6 +41,10 @@ object Blocks {
         val devices = java.util.concurrent.CopyOnWriteArrayList<Triple<Int, String, Int>>()
         /** per-device last packet ACK counter — lets the relay sync block 2. */
         val acks = java.util.concurrent.ConcurrentHashMap<Int, Int>()
+        /** DNA connections as [dev1, port1, dev2, port2] — the port index says
+         *  which EDGE each snap is on (see Topology), so scenes can tell a
+         *  side-by-side arena from a vertical face-off stack. */
+        val connections = java.util.concurrent.CopyOnWriteArrayList<IntArray>()
     }
 
     /** Decode one device→host SysEx; update state; return events (tests).
@@ -102,9 +106,12 @@ object Blocks {
                         }
                     }
                     st.deviceCount = nDev
+                    st.connections.clear()
                     for (c in 0 until nCon) {
-                        read(TOPOLOGY_INDEX); read(CONNECTOR_PORT)
-                        read(TOPOLOGY_INDEX); read(CONNECTOR_PORT)
+                        val d1 = read(TOPOLOGY_INDEX); val p1 = read(CONNECTOR_PORT)
+                        val d2 = read(TOPOLOGY_INDEX); val p2 = read(CONNECTOR_PORT)
+                        st.connections.add(intArrayOf(d1, p1, d2, p2))
+                        events.add("conn:$d1:$p1:$d2:$p2")
                     }
                     if (nDev < 6 && nCon < 24) events.add("topo_end")
                 }

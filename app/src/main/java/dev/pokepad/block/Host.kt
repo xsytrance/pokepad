@@ -137,7 +137,11 @@ object Host {
             android.util.Log.i("pokepad-conn", "openDevice: device=${device != null} inPort=${port != null}")
             if (port == null) { connecting = false; say("port busy — retrying shortly"); reconnect(); return@openDevice }
             val asm = SysexAssembler({ sysex ->
-                Blocks.decode(sysex, blocks) { ev -> handler?.post { dispatchTouch(ev) } }
+                val evs = Blocks.decode(sysex, blocks) { ev -> handler?.post { dispatchTouch(ev) } }
+                // raw connector ports + classified arrangement — calibration data
+                // for Topology's port→edge table (watch tag pokepad-topo)
+                for (e in evs) if (e.startsWith("conn:"))
+                    android.util.Log.i("pokepad-topo", "$e → ${Topology.analyze(blocks)}")
                 val dc = blocks.deviceCount
                 if (dc > 0 && dc != lastDeviceCount) {
                     val firstSeen = lastDeviceCount < 0

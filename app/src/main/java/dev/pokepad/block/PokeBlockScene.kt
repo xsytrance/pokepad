@@ -20,12 +20,16 @@ class PokeBlockScene(
     /** if non-empty, each fight leads with one of YOUR real save mon (built
      *  fresh each round so battle state never carries over). Empty = all random. */
     private val playerFactories: List<() -> Mon> = emptyList(),
+    /** connector-port topology source; injectable for tests */
+    private val topo: () -> Topology.FaceOff = { Topology.analyze(Host.blocks) },
 ) : Scene {
 
     private val WW = 15
     @Volatile private var exit = false
     @Volatile private var reel: Reel? = null
     @Volatile private var roundStart = -1.0
+    /** arrangement captured per round (the reel's back-view is baked at build) */
+    @Volatile private var face = Topology.NONE
     private val rng = Random(seedBase)
 
     private val HOLD_S = 3.5
@@ -40,8 +44,12 @@ class PokeBlockScene(
                    else { val s = ids[rng.nextInt(ids.size)]; Mon(dex, s, moves = Director.movesetFor(dex, s)) }
         var bs = ids[rng.nextInt(ids.size)]; while (bs == aMon.species.name) bs = ids[rng.nextInt(ids.size)]
         val bMon = Mon(dex, bs, moves = Director.movesetFor(dex, bs))
-        val r = Director.build(dex, aMon, bMon, rng.nextLong())
-        onLog("⚔️ ${r.leftName} vs ${r.rightName} — ${r.winnerName} wins!")
+        face = topo()
+        val stacked = face.arrangement == Topology.Arrangement.STACKED
+        // stacked = first-person face-off: your mon (left) from BEHIND, foe front
+        val r = Director.build(dex, aMon, bMon, rng.nextLong(), leftBack = stacked)
+        onLog(if (stacked) "↕ FACE-OFF! ${r.leftName} below vs ${r.rightName} above — ${r.winnerName} wins!"
+              else "⚔️ ${r.leftName} vs ${r.rightName} — ${r.winnerName} wins!")
         r
     } catch (e: Exception) { onLog("battle failed: ${e.message}"); null }
 
@@ -56,17 +64,31 @@ class PokeBlockScene(
         return i.coerceIn(0, (reel?.cells?.size ?: 1) - 1)
     }
 
-    override fun render(t: Double): ByteArray {          // block 1 = left mon (driver)
+    /** your mon's panel — on the BOTTOM block in a stack (HP bar at the seam) */
+    private fun playerPanel(c: dev.pokepad.core.Cell) = withHp(toBuf(c.left), c.hpL, row = 0)
+    /** the foe's panel — on the TOP block in a stack (HP bar at the seam = row 14) */
+    private fun foePanel(c: dev.pokepad.core.Cell) =
+        withHp(toBuf(c.right), c.hpR, row = if (face.arrangement == Topology.Arrangement.STACKED) 14 else 0)
+
+    override fun render(t: Double): ByteArray {          // master block (driver)
         if (reel == null) { reel = newReel(); roundStart = t }
+        // re-snapped into a different arrangement mid-round → restart the round
+        // in the new framing right away (same-arrangement flips just re-route)
+        val now = topo()
+        if (now.arrangement != Topology.Arrangement.UNKNOWN && now.arrangement != face.arrangement) {
+            reel = newReel(); roundStart = t
+        } else if (now != face && now.arrangement == face.arrangement) face = now
         val r = reel ?: return blank()
         val c = r.cells[cellIndex(t, advance = true)]
-        return withHp(toBuf(c.left), c.hpL)
+        val stacked = face.arrangement == Topology.Arrangement.STACKED
+        return if (stacked && face.masterOnTop) foePanel(c) else playerPanel(c)
     }
 
-    override fun renderSecond(t: Double): ByteArray {     // block 2 = right mon (reader)
+    override fun renderSecond(t: Double): ByteArray {     // second block (relay)
         val r = reel ?: return blank()
         val c = r.cells[cellIndex(t, advance = false)]
-        return withHp(toBuf(c.right), c.hpR)
+        val stacked = face.arrangement == Topology.Arrangement.STACKED
+        return if (stacked && !face.masterOnTop) foePanel(c) else if (stacked) playerPanel(c) else foePanel(c)
     }
 
     private fun blank(): ByteArray {
@@ -89,11 +111,11 @@ class PokeBlockScene(
         val p = (y * WW + x) * 3; buf[p] = r.toByte(); buf[p + 1] = g.toByte(); buf[p + 2] = b.toByte()
     }
 
-    private fun withHp(buf: ByteArray, frac: Float): ByteArray {
+    private fun withHp(buf: ByteArray, frac: Float, row: Int = 0): ByteArray {
         val n = Math.round(frac.coerceIn(0f, 1f) * 13)
-        for (i in 0 until 13) set(buf, 1 + i, 0, 40, 38, 46)
+        for (i in 0 until 13) set(buf, 1 + i, row, 40, 38, 46)
         val c = when { frac > 0.5f -> intArrayOf(95, 217, 122); frac > 0.22f -> intArrayOf(245, 210, 70); else -> intArrayOf(229, 83, 63) }
-        for (i in 0 until n) set(buf, 1 + i, 0, c[0], c[1], c[2])
+        for (i in 0 until n) set(buf, 1 + i, row, c[0], c[1], c[2])
         return buf
     }
 }
