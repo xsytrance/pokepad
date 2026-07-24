@@ -8,6 +8,50 @@ A running build log (newest on top). Decisions, milestones, and what's next.
 > holds the reference engine (Python), the cross-gate fixtures, the
 > save-format tooling, and the design docs. Build/run: see `CLAUDE.md`.
 
+## 2026-07-24 — formats, face-off, and the wire grows teams
+
+- **⚔️ MULTI-MON FORMATS — 1V1 / 2V2 / 3V3 / ∞ LIMITLESS, everywhere.** The
+  engine always carried teams; now the *player* does. `Battle.humanSides`
+  defers the switch-on-faint for human-controlled sides — the engine pauses,
+  the UI asks **"Who's next?"**, and `sendIn(side, idx)` resumes with the real
+  choice (the AI still switches by best matchup). `Ev.SendIn` carries the
+  incoming mon's HP fraction and the Director tracks per-cell HP-box **names**,
+  so mid-battle switch-ins draw the right bar under the right name. Trainer
+  mode: format picker (persisted), team = your save party lead-first (padded
+  with random back-up in fixed formats; limitless = your party exactly), and a
+  live "N left · M foes" status. Also fixed: a switched-in player mon now
+  renders back-view (the back/front choice is keyed by *side*, not species).
+- **👑 MULTI-MON DUELS — team formats over the wire.** Append-only protocol
+  growth (a 1v1-era peer still parses every prefix): HELLO carries your bench,
+  START echoes both teams + the host's format, `SWITCH|turn|idx` sends a
+  replacement, TURN gained await/choices/maxima fields. Both sides are human
+  on the host engine; when a mon faints its **owner** picks the replacement on
+  their own phone and the host relays a SendIn-only TURN so both screens play
+  the same summon. Lobby got a FORMAT cycler (host-authoritative). Verified:
+  desktop loopback across all formats incl. asymmetric teams (6v5), then
+  **real-wire** — the Pixel 8 hosted a 3v3 (NICK's Salamence-lead team) vs a
+  desktop JoinCore challenger over wifi: 10 turns, 2 faint→switch cycles
+  through the relay, clean finish, graceful challenger-left → lobby re-arm.
+- **↕ VERTICAL BLOCK FACE-OFF — the snap decides the camera.** The block's
+  topology message always said *which edge* each DNA snap is on; the decoder
+  now keeps it (`State.connections`) and `block/Topology.kt` classifies the
+  arrangement: east/west snap = classic side-by-side arena, **north/south =
+  STACKED** → the scene re-frames as a first-person face-off (your mon
+  back-view on the bottom block, the foe front-view above, HP bars hugging
+  the seam). Re-snap mid-battle and the round restarts in the new framing
+  immediately. Port→edge table is the JUCE data-sheet ordering, **not yet
+  calibrated on real Lightpads** — raw ports + classification log under
+  `pokepad-topo`; if a stacked snap reads sideways, fix the table from that
+  log (gate: synthesized topology sysex → decode → classify, all pass).
+- **🎵 Music toggle** on the home screen (persisted; self-ensuring so adb
+  launches respect it). **🎨 Art batch 3:** sceptile, blaziken, swampert,
+  rayquaza, metagross, gardevoir, flygon, milotic front+back — 27 hand-drawn
+  heroes total.
+- **📱 Fleet:** both phones on the face-off build; a save survives reinstalls
+  (`filesDir/last.sav`), so the Pixel 8 came back up as NICK with zero setup.
+- **Next:** hardware-verify the face-off (one vertical snap + the
+  `pokepad-topo` log), guided wizard, cashemall.
+
 ## 2026-07-23 — Poképad moves into its own house
 
 - The Android app module migrated from `clawdpad-app` into this repo as

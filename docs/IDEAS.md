@@ -25,7 +25,9 @@ top. (Rod asked me to always add ideas/improvements as I go.)
   (stages, Focus Energy *lowering* crits was a Gen-I bug, fixed by III),
   Hyper Beam not recharging on KO, Wrap/Bind, Destiny Bond, etc.
 - **[PARTIAL] Team preview / lead logic.** DONE: 6v6 with forced switch on
-  faint, best-matchup send-in. TODO: **voluntary** strategic switching mid-battle
+  faint, best-matchup send-in; 2026-07-24: HUMAN-chosen switches in Trainer
+  mode + Duels (formats 1v1/2v2/3v3/limitless — the player picks who's next,
+  AI keeps best-matchup). TODO: **voluntary** strategic switching mid-battle
   (pivot out of a bad matchup before fainting) — the thing that makes it feel
   *smart*. Guard against switch-loops (cap voluntary switches / only switch when
   the incoming mon is a clear improvement AND the active is in real danger).
