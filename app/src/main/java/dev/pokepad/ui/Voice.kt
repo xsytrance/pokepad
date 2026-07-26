@@ -64,6 +64,33 @@ object Voice {
         runCatching { sr.startListening(intent) }.onFailure { onResult(emptyList()) }
     }
 
+    /** BEST match against a large option set (the full 386-species roster),
+     *  not just the first hit — needed when many names are similar. Scores:
+     *  exact spoken word ≫ name fully contained in a hypothesis ≫ a hypothesis
+     *  that PREFIXES a name (partial speech mid-word, "char…" → Charizard).
+     *  Returns null below a small confidence floor so filler words don't match. */
+    fun bestMatch(hyps: List<String>, options: List<String>): String? {
+        fun norm(s: String) = s.lowercase().replace(Regex("[^a-z0-9]"), "")
+        val no = options.map { it to norm(it.replace("-", " ")) }
+        var best: String? = null; var bestScore = 0.0
+        for (h in hyps) {
+            val hn = norm(h)
+            if (hn.length < 3) continue
+            for ((o, on) in no) {
+                if (on.isEmpty()) continue
+                val score = when {
+                    hn == on -> 1000.0 + on.length
+                    hn.contains(on) && on.length >= 3 -> 100.0 + on.length      // said the name amid other words
+                    on.startsWith(hn) -> hn.length.toDouble()                    // still mid-word (peek)
+                    hn.startsWith(on) && on.length >= 4 -> on.length - 0.5       // name is a prefix of what was heard
+                    else -> 0.0
+                }
+                if (score > bestScore) { bestScore = score; best = o }
+            }
+        }
+        return if (bestScore >= 3.0) best else null
+    }
+
     fun listen(ctx: Context, onState: (String) -> Unit, onResult: (List<String>) -> Unit) {
         val sr = try { SpeechRecognizer.createSpeechRecognizer(ctx) } catch (e: Exception) { onResult(emptyList()); return }
         sr.setRecognitionListener(object : RecognitionListener {

@@ -2,6 +2,7 @@ package dev.pokepad.ui
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.os.Build
 import android.graphics.Bitmap
 import android.graphics.Color
 import android.graphics.Typeface
@@ -58,6 +59,8 @@ class ShowcaseActivity : AppCompatActivity() {
     private var current: Entry? = null
     private var page = 0
     private var party: List<Entry> = emptyList()
+    private var rosterNames: List<String> = emptyList()      // all 386 species (internal names)
+    private val synthCache = HashMap<String, Entry>()         // on-the-fly entries for non-party mon
     private var scene: PokeballScene? = null
     @Volatile private var listening = false
     @Volatile private var closed = false
@@ -78,6 +81,7 @@ class ShowcaseActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         PokeData.ensure(this); SaveData.ensure(this); Sfx.ensure(this)
         party = buildParty()
+        rosterNames = PokeData.speciesIds
 
         val scroll = ScrollView(this).apply { setBackgroundColor(BG); isFillViewport = true }
         val frame = FrameLayout(this)
@@ -131,22 +135,57 @@ class ShowcaseActivity : AppCompatActivity() {
         setContentView(scroll)
         Insets.pad(root)
 
-        // the glass becomes the ball (if a block is linked — USB or BLE MIDI)
-        if (Host.streamer?.isAlive == true) {
-            val dex = PokeData.dex()
-            scene = PokeballScene(
-                monPx = { sp, t ->
-                    dex.species[sp]?.let { s ->
-                        val feats = dev.pokepad.core.FEATURES[sp] ?: dev.pokepad.core.autoFeatures(s.types)
-                        dev.pokepad.core.Renderer.render(s.shape, s.types, feats, (t * 6).toInt(), false, sp).px
-                    }
-                },
-                onPage = { p -> ui.post { page = p; Sfx.play("blip"); refresh() } })
-                .also { Host.setScene(it) }
-        }
+        // the glass becomes the ball. Build the scene now (even before a block
+        // is linked) and attach it the moment a block connects — USB or BLE MIDI.
+        val dex = PokeData.dex()
+        scene = PokeballScene(
+            monPx = { sp, t ->
+                dex.species[sp]?.let { s ->
+                    val feats = dev.pokepad.core.FEATURES[sp] ?: dev.pokepad.core.autoFeatures(s.types)
+                    dev.pokepad.core.Renderer.render(s.shape, s.types, feats, (t * 6).toInt(), false, sp).px
+                }
+            },
+            onPage = { p -> ui.post { page = p; Sfx.play("blip"); refresh() } })
+        // reflect whatever the current showcase state is onto a fresh block
+        scene?.let { syncScene(it) }
+        attachBlock()
 
         refresh()
         ensureMicThenListen()
+    }
+
+    /** bring up the MIDI Keeper (so a block works even if you came straight
+     *  here without visiting CONNECT BLOCKS) and hand it our ball scene, now
+     *  and again whenever it (re)connects. */
+    private fun attachBlock() {
+        requestBlockPerms()
+        Host.onStatus = { s -> ui.post { blockStatus = s; if (st == St.BALL) refresh() } }
+        Host.onHosting = { ui.post { scene?.let { Host.setScene(it) } } }
+        scene?.let { Host.setScene(it) }         // no-op until the streamer exists
+        Host.start(this)                          // idempotent; USB or BLE-MIDI
+    }
+
+    private fun requestBlockPerms() {
+        val need = ArrayList<String>()
+        if (Build.VERSION.SDK_INT >= 31 &&
+            ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED)
+            need.add(Manifest.permission.BLUETOOTH_CONNECT)
+        if (Build.VERSION.SDK_INT >= 33 &&
+            ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED)
+            need.add(Manifest.permission.POST_NOTIFICATIONS)
+        if (need.isNotEmpty()) ActivityCompat.requestPermissions(this, need.toTypedArray(), 3)
+    }
+
+    @Volatile private var blockStatus: String = ""
+
+    /** push the current activity state onto a (possibly just-connected) scene */
+    private fun syncScene(s: PokeballScene) {
+        val e = current
+        when (st) {
+            St.BALL -> s.close()
+            St.PEEK -> e?.let { s.peek(star(it)) }
+            St.OPEN -> e?.let { s.reveal(star(it)); s.setPage(page) }
+        }
     }
 
     private fun buildParty(): List<Entry> {
@@ -168,12 +207,30 @@ class ShowcaseActivity : AppCompatActivity() {
     private fun star(e: Entry) = PokeballScene.Star(e.species, e.shiny, e.level, e.mon.stats, e.mon.types)
 
     private fun doPeek(e: Entry) {
-        if (st == St.OPEN && current === e) return
+        if (current?.species == e.species && (st == St.PEEK || st == St.OPEN)) return
         current = e; st = St.PEEK; page = 0
         Sfx.play("ack")
         scene?.peek(star(e))
         refresh()
     }
+
+    /** resolve spoken hypotheses to a showable mon: your real party first
+     *  (nickname OR species → real save data), else ANY species in the roster
+     *  as a synthesized stand-in. */
+    private fun resolve(hyps: List<String>): Entry? {
+        party.firstOrNull { Voice.match(hyps, names(it)) != null }?.let { return it }
+        val sp = Voice.bestMatch(hyps, rosterNames) ?: return null
+        return synthEntry(sp)
+    }
+
+    private fun synthEntry(species: String): Entry = synthCache.getOrPut(species) {
+        val dex = PokeData.dex()
+        val mon = Mon(dex, species, moves = Director.movesetFor(dex, species))
+        Entry(pretty(species), species, 50, false, "hardy", dex.species[species]?.ab0, "—", mon)
+    }
+
+    private fun pretty(species: String) =
+        species.split("-").joinToString(" ") { it.replaceFirstChar { c -> c.uppercase() } }
 
     private fun doReveal(e: Entry) {
         current = e; st = St.OPEN; page = 0
@@ -246,27 +303,32 @@ class ShowcaseActivity : AppCompatActivity() {
         if (closed || hyps.isEmpty()) return
         val chooseSaid = hyps.any { it.lowercase().contains("choose") || it.lowercase().contains("chews") }
         val returnSaid = hyps.any { Regex("\\breturn\\b").containsMatchIn(it.lowercase()) }
-        val named = party.firstOrNull { e -> Voice.match(hyps, names(e)) != null }
+        // once revealed, prefer reading the spoken word as one of the mon's moves
+        // (so "Thunderbolt" demos an attack instead of peeking a look-alike mon)
+        val moveSaid = if (st == St.OPEN && current != null) Voice.match(hyps, current!!.mon.moves) else null
+        val named = if (moveSaid != null) null else resolve(hyps)
 
         when {
             // "…return!" — back into the ball (final results only, to be safe)
             !partial && returnSaid && st != St.BALL -> doReturn()
+            // a move once the mon is out
+            !partial && moveSaid != null -> demoAttack(moveSaid)
             // "<name>, I choose you!" in one breath — straight to the reveal
             chooseSaid && (named != null || current != null) ->
                 doReveal(named ?: current!!)
             // a name mid-sentence — crack the shell before they finish talking
             named != null && st != St.OPEN -> doPeek(named)
-            // move demo once revealed
-            !partial && st == St.OPEN && current != null ->
-                Voice.match(hyps, current!!.mon.moves)?.let { demoAttack(it) }
+            // already open, a different mon named → peek the new one
+            named != null && st == St.OPEN && named.species != current?.species -> doPeek(named)
         }
     }
 
     // ── phone mirror ─────────────────────────────────────────────────────────
     private fun refresh() {
         val e = current
-        partyLine.text = "in the ball: " + party.joinToString(" · ") { it.label } +
-            (if (SaveData.truth == null) "   (no save loaded — stand-ins)" else "")
+        val team = if (party.isNotEmpty()) "your team: " + party.joinToString(" · ") { it.label } else ""
+        val blk = if (blockStatus.isNotBlank()) "\n🔗 $blockStatus" else ""
+        partyLine.text = "say ANY Pokémon by name — all 386.\n$team$blk"
         when (st) {
             St.BALL -> {
                 ballArt.visibility = View.VISIBLE; ballArt.text = "◓"; ballArt.setTextColor(RED)
@@ -334,6 +396,7 @@ class ShowcaseActivity : AppCompatActivity() {
     override fun onDestroy() {
         super.onDestroy()
         closed = true
+        Host.onHosting = {}; Host.onStatus = {}
         scene?.abort(); if (scene != null) Host.setScene(null)
     }
 
