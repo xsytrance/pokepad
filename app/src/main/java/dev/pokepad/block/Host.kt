@@ -120,7 +120,7 @@ object Host {
             (it.properties.getString(MidiDeviceInfo.PROPERTY_NAME) ?: "")
                 .contains(Regex("light|block|roli", RegexOption.IGNORE_CASE)) }
             ?: infos.firstOrNull { it.inputPortCount > 0 }
-        if (info == null) { say("no block in sight — plug the block into the phone"); return }
+        if (info == null) { say("no block yet — pair it over Bluetooth (or USB)"); return }
         connectTo(info)
     }
 
