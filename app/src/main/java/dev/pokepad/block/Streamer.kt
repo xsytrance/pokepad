@@ -124,12 +124,19 @@ class Streamer(
                    (blocks.topologyIndex < 0 || blocks.lastAck < 0)) sleep(100)
             if (blocks.topologyIndex >= 0) deviceIdx = blocks.topologyIndex
             nextIndex = if (blocks.lastAck >= 0) (blocks.lastAck + 1) and 0x3FF else 1
-            if (blocks.serial.isNotEmpty())
-                say("synced to ${blocks.serial} (idx $deviceIdx, battery ${blocks.battery * 100 / 31}%)")
+            // HONEST status: a block that never reported its topology/ack is
+            // silent on the return channel — we can't address it, so it'll just
+            // sit on its factory pattern. Say so instead of a false "connected".
+            if (blocks.topologyIndex < 0) {
+                say("⚠ block linked but not responding — forget & re-pair it, or charge it")
+            } else {
+                if (blocks.serial.isNotEmpty())
+                    say("synced to ${blocks.serial} (idx $deviceIdx, battery ${blocks.battery * 100 / 31}%)")
+            }
             lastPing = System.currentTimeMillis()
             beginUntil = lastPing + 12_000
-            sendAll(doc.getJSONArray("boot"))   // LittleFoot program: ONCE
-            say("connected — snap a second block to battle ⚔️")
+            sendAll(doc.getJSONArray("boot"))   // LittleFoot program: ONCE (best-effort even if silent)
+            if (blocks.topologyIndex >= 0) say("connected — snap a second block to battle ⚔️")
             sceneLoop()
         } catch (e: InterruptedException) {
             // quit()
