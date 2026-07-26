@@ -117,6 +117,7 @@ class DuelActivity : AppCompatActivity() {
     private lateinit var blockLine: TextView
     private lateinit var changeBtn: TextView
     private lateinit var formatBtn: TextView
+    private lateinit var voiceBtn: TextView
     private var fighterIdx = 0   // index into party; party.size = random
 
     private fun cycleFighter() {
@@ -233,6 +234,10 @@ class DuelActivity : AppCompatActivity() {
         lobby.addView(changeBtn, lp(10).also { it.width = dp(300); it.height = dp(44) })
         formatBtn = bigBtn("⚔  FORMAT: ${fmtLabel()}", CARD) { cycleFormat() }
         lobby.addView(formatBtn, lp(10).also { it.width = dp(300); it.height = dp(44) })
+        voiceBtn = bigBtn("🎙  TRAINER VOICE: ${TrainerVoice.label(this)}", CARD) {
+            TrainerVoice.promptCallsign(this) { voiceBtn.text = "🎙  TRAINER VOICE: ${TrainerVoice.label(this)}" }
+        }
+        lobby.addView(voiceBtn, lp(10).also { it.width = dp(300); it.height = dp(44) })
         refreshFighterLine()
         blockLine = TextView(this).apply { setTextColor(DIM); textSize = 13f; gravity = Gravity.CENTER }
         lobby.addView(blockLine, lp(10).also { it.width = dp(300) })
@@ -261,7 +266,7 @@ class DuelActivity : AppCompatActivity() {
         isHost = true; searching = false
         server?.stop(); client?.stop()
         hostBtn.visibility = View.GONE; joinBtn.visibility = View.GONE; ipRow.visibility = View.GONE
-        changeBtn.visibility = View.GONE; formatBtn.visibility = View.GONE
+        changeBtn.visibility = View.GONE; formatBtn.visibility = View.GONE; voiceBtn.visibility = View.GONE
         lobbyStatus.text = "Waiting for a challenger… (${fmtLabel()})\nTell them to tap JOIN.\n(your address: ${localIp()})"
         val core = HostCore(PokeData.dex(), myTeam(), format, System.currentTimeMillis(),
             send = { l -> server?.send(l) },
@@ -282,7 +287,7 @@ class DuelActivity : AppCompatActivity() {
         isHost = false; searching = true
         server?.stop(); client?.stop()
         hostBtn.visibility = View.GONE; joinBtn.visibility = View.GONE; ipRow.visibility = View.VISIBLE
-        changeBtn.visibility = View.GONE; formatBtn.visibility = View.GONE
+        changeBtn.visibility = View.GONE; formatBtn.visibility = View.GONE; voiceBtn.visibility = View.GONE
         lobbyStatus.text = "Searching for a host on your wifi…"
         scan()
     }
@@ -324,7 +329,7 @@ class DuelActivity : AppCompatActivity() {
         side = null; curReel = null
         showLobby()
         hostBtn.visibility = View.VISIBLE; joinBtn.visibility = View.VISIBLE; ipRow.visibility = View.GONE
-        changeBtn.visibility = View.VISIBLE; formatBtn.visibility = View.VISIBLE
+        changeBtn.visibility = View.VISIBLE; formatBtn.visibility = View.VISIBLE; voiceBtn.visibility = View.VISIBLE
         lobbyStatus.text = "$msg\nready when you are."
     }
 

@@ -166,6 +166,10 @@ class VoiceCommander(
             ui.postDelayed({ begin() }, 700); return
         }
         misses = 0
+        // per-trainer voice: a command must be addressed to THIS phone's callsign
+        // to START. Once your name armed the turn (awaitingMove), the follow-up
+        // move flows without repeating the callsign. No callsign set = obey anyone.
+        if (!awaitingMove && !TrainerVoice.addressed(ctx, hyps)) { ui.postDelayed({ begin() }, 500); return }
         if (!awaitingMove) {
             Voice.match(hyps, moves)?.let { onMove(it); return }          // direct attack works
             val nm = Voice.match(hyps, names)

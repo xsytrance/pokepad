@@ -3,6 +3,29 @@
 My own suggestions as I build. Not commitments — a menu to pull from. Newest on
 top. (Rod asked me to always add ideas/improvements as I go.)
 
+## Trainer Voice / two-phone play (2026-07-25)
+
+- **[DONE] Per-trainer callsign** (Rod's idea, live during the 1v1 hardware
+  session): two phones in one room both hear the same spoken name and both
+  react. Fix = each phone picks a callsign; it only obeys commands that include
+  it ("Ash — Pikachu, Thunderbolt!"). Shipped: `ui/TrainerVoice` (persisted
+  callsign + `matches()` whole-word/prefix gate, guarded against false hits
+  like "Ash" in "Rock Sm-ash"), gated in `ShowcaseActivity.onHeard` and
+  `VoiceCommander` (callsign arms the turn via the existing awaitingMove state,
+  so the follow-up move needs no repeat), calibrate button in Showcase + Duel
+  lobby. Off by default (no callsign = obey anyone).
+- **True voice-print biometrics** would be the dream ("only MY voice"), but
+  on-device speaker ID isn't reliable (Android's recognizer doesn't expose it).
+  If we ever want it: record 3–5 enrollment phrases → a small on-device speaker-
+  embedding model → cosine-match each utterance. Big lift, uncertain payoff;
+  the callsign already gives ~all the value.
+- **Armed-window polish:** right now the callsign must start each *command*.
+  Could add "say your name once to claim the mic for N seconds" so a whole
+  multi-command turn is yours. The awaitingMove arming already covers the
+  name→move step; extend it if turns get chattier.
+- **Auto-assign callsigns in a duel:** host could hand each phone a callsign at
+  pairing (HOST="Red", JOIN="Blue") so it's zero-setup.
+
 ## Pokéball Showcase (2026-07-24)
 
 - **Species "cries".** Synthesize a per-species chirp from its stats/types

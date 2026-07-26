@@ -73,6 +73,7 @@ class ShowcaseActivity : AppCompatActivity() {
     private lateinit var pageText: TextView
     private lateinit var movesRow: LinearLayout
     private lateinit var partyLine: TextView
+    private lateinit var voiceBtn: TextView
     private lateinit var flash: View
 
     private fun dp(v: Int) = (v * resources.displayMetrics.density).toInt()
@@ -127,6 +128,10 @@ class ShowcaseActivity : AppCompatActivity() {
         root.addView(partyLine, lp(18, width = dp(320)))
 
         root.addView(bigBtn("⤵  RETURN (close the ball)", CARD) { doReturn() }, lp(14, width = dp(300), height = dp(50)))
+        voiceBtn = bigBtn("🎙  TRAINER VOICE: ${TrainerVoice.label(this)}", CARD) {
+            TrainerVoice.promptCallsign(this) { ui.post { voiceBtn.text = "🎙  TRAINER VOICE: ${TrainerVoice.label(this)}" } }
+        }
+        root.addView(voiceBtn, lp(10, width = dp(300), height = dp(44)))
 
         frame.addView(root, FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.WRAP_CONTENT))
         flash = View(this).apply { visibility = View.GONE }
@@ -301,6 +306,8 @@ class ShowcaseActivity : AppCompatActivity() {
 
     private fun onHeard(hyps: List<String>, partial: Boolean) {
         if (closed || hyps.isEmpty()) return
+        if (!TrainerVoice.addressed(this, hyps)) return   // not my trainer's voice
+
         val chooseSaid = hyps.any { it.lowercase().contains("choose") || it.lowercase().contains("chews") }
         val returnSaid = hyps.any { Regex("\\breturn\\b").containsMatchIn(it.lowercase()) }
         // once revealed, prefer reading the spoken word as one of the mon's moves
