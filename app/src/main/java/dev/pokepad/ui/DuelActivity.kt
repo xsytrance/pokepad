@@ -101,10 +101,11 @@ class DuelActivity : AppCompatActivity() {
         Insets.pad(lobby); Insets.padBottom(battlePanel)
         showLobby()
 
-        // block mirror: if a Lightpad is connected, your block = your mon
-        if (Host.streamer?.isAlive == true) {
-            mirror = MirrorScene { currentCell() }.also { Host.setScene(it) }
-        }
+        // block mirror: your block = YOUR mon + HP, the whole duel. Bring the
+        // block link up ourselves (no need to visit CONNECT BLOCKS first) and
+        // (re)attach the mirror whenever the block connects — USB or BLE-MIDI.
+        mirror = MirrorScene { currentCell() }
+        attachBlock()
 
         when (intent.getStringExtra("role")) {
             "host" -> startHost()
@@ -113,6 +114,7 @@ class DuelActivity : AppCompatActivity() {
     }
 
     private lateinit var fighterLine: TextView
+    private lateinit var blockLine: TextView
     private lateinit var changeBtn: TextView
     private lateinit var formatBtn: TextView
     private var fighterIdx = 0   // index into party; party.size = random
@@ -138,6 +140,41 @@ class DuelActivity : AppCompatActivity() {
         val i = (((System.currentTimeMillis() - reelStart) / (1000.0 / Director.FPS)).toInt())
             .coerceIn(0, r.cells.size - 1)
         return r.cells[i]
+    }
+
+    // ── your block (BLE-MIDI or USB) becomes your mon ────────────────────────
+    @Volatile private var blockStatus = ""
+
+    private fun attachBlock() {
+        requestBlockPerms()
+        Host.onStatus = { s -> ui.post { blockStatus = s; refreshBlockLine() } }
+        Host.onHosting = { ui.post { mirror?.let { Host.setScene(it) }; refreshBlockLine() } }
+        mirror?.let { Host.setScene(it) }        // no-op until the streamer exists
+        Host.start(this)                          // idempotent; USB or BLE-MIDI bridge
+        refreshBlockLine()
+    }
+
+    private fun refreshBlockLine() {
+        if (!::blockLine.isInitialized) return
+        val live = Host.streamer?.isAlive == true &&
+            System.currentTimeMillis() - Host.blocks.lastAckAt < 12_000
+        blockLine.text = when {
+            live -> "🔗 your block: connected ✓"
+            blockStatus.isNotBlank() -> "🔗 $blockStatus"
+            else -> "🔗 pair your block (optional) — Bluetooth MIDI or USB"
+        }
+        blockLine.setTextColor(if (live) GOLD else DIM)
+    }
+
+    private fun requestBlockPerms() {
+        val need = ArrayList<String>()
+        if (android.os.Build.VERSION.SDK_INT >= 31 &&
+            checkSelfPermission(android.Manifest.permission.BLUETOOTH_CONNECT) != android.content.pm.PackageManager.PERMISSION_GRANTED)
+            need.add(android.Manifest.permission.BLUETOOTH_CONNECT)
+        if (android.os.Build.VERSION.SDK_INT >= 33 &&
+            checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED)
+            need.add(android.Manifest.permission.POST_NOTIFICATIONS)
+        if (need.isNotEmpty()) requestPermissions(need.toTypedArray(), 5)
     }
 
     private fun pickMySpec(): Proto.MonSpec {
@@ -197,6 +234,9 @@ class DuelActivity : AppCompatActivity() {
         formatBtn = bigBtn("⚔  FORMAT: ${fmtLabel()}", CARD) { cycleFormat() }
         lobby.addView(formatBtn, lp(10).also { it.width = dp(300); it.height = dp(44) })
         refreshFighterLine()
+        blockLine = TextView(this).apply { setTextColor(DIM); textSize = 13f; gravity = Gravity.CENTER }
+        lobby.addView(blockLine, lp(10).also { it.width = dp(300) })
+        refreshBlockLine()
         lobbyStatus = TextView(this).apply { text = ""; setTextColor(INK); textSize = 15f; gravity = Gravity.CENTER }
         lobby.addView(lobbyStatus, lp(18).also { it.width = dp(300) })
 
@@ -450,12 +490,14 @@ class DuelActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         Music.play(this, if (inBattle) "music_battle" else "music_menu", if (inBattle) 0.45f else 0.35f)
+        refreshBlockLine()   // reflect a block that connected while we were away
     }
 
     override fun onDestroy() {
         super.onDestroy()
         commander.stop()
         server?.stop(); client?.stop()
+        Host.onHosting = {}; Host.onStatus = {}
         mirror?.abort(); if (mirror != null) Host.setScene(null)
     }
 
